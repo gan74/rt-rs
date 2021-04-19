@@ -8,3 +8,4 @@ edition = "2018"
 gltf = { version = "0.15", features = ["KHR_lights_punctual"] }
 image = "*"
 rand = "*"
+rayon = "*"

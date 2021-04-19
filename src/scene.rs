@@ -48,7 +48,7 @@ impl Scene {
 
     pub fn trace(&self, ray: Ray, rng: &mut ThreadRng, max_rays: usize) -> Color {
         if max_rays == 0 {
-            return Color::new(0.0, 0.0, 0.0);
+            return Color::from(0.0);
         }
 
         match self.hit(ray) {
