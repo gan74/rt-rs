@@ -16,7 +16,7 @@ pub struct Camera {
 }
 
 pub struct Scene {
-    meshes: Vec<(Transform, Mesh)>,
+    meshes: Vec<Mesh>,
     camera: Camera,
 }
 
@@ -60,26 +60,20 @@ impl Scene {
     pub fn trace_ray(&self, u: f32, v: f32) -> Option<Vec3> {
         let ray = self.camera.generate_ray(u, v);
 
-        let mut hit_pos = None;
+        let mut hit = None;
         let mut depth_sq = f32::MAX;
 
-        for (transform, mesh) in self.meshes.iter() {
-            for tri in mesh.triangles() {
-                let hit = intersect(&ray, tri);
-                if let Some(bary) = hit {
-                    let pos = tri[0] * bary.0 + tri[1] * bary.1 + tri[2] * bary.2;
-                    let dist_sq = ray.origin().distance2(pos);
-
-                    if dist_sq < depth_sq {
-                        depth_sq = dist_sq;
-                        hit_pos = Some(pos);
-                        //hit_pos = Some(Vec3::new(bary.0, bary.1, bary.2));
-                    }
+        for mesh in self.meshes.iter() {
+            if let Some(pos) = mesh.intersects(&ray) {
+                let dist_sq = ray.origin().distance2(pos);
+                if dist_sq < depth_sq {
+                    depth_sq = dist_sq;
+                    hit = Some(pos);
                 }
             }
         }
 
-        hit_pos
+        hit
     }
 
     pub fn camera(&self) -> Camera {
@@ -109,11 +103,10 @@ pub fn import_scene<P: AsRef<Path>>(path: P) -> gltf::Result<Scene> {
                     let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
                     match (reader.read_positions(), reader.read_indices()) {
                         (Some(positions), Some(indices)) => {
-                            let vertices = positions.map(|p| Vertex { pos: Vec3::from(p) }).collect();
+                            let vertices = positions.map(|p| Vertex { pos: transform.transform_pos(Vec3::from(p)) }).collect();
                             let indices = indices.into_u32().collect::<Vec<_>>();
                             let triangles = indices.as_slice().chunks(3).map(|sl| [sl[0], sl[1], sl[2]]).collect();
-                            let mesh = Mesh::new(vertices, triangles);
-                            scene.meshes.push((transform, mesh));
+                            scene.meshes.push(Mesh::new(vertices, triangles));
                         },
 
                         _ => {

@@ -48,4 +48,11 @@ impl Transform {
     pub fn position(&self) -> Vec3 {
         self.pos
     }
+
+    pub fn transform_pos(&self, pos: Vec3) -> Vec3 {
+        self.basis[0] * pos.x +
+        self.basis[1] * pos.y +
+        self.basis[2] * pos.z +
+        self.pos
+    }
 }

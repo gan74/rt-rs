@@ -99,6 +99,11 @@ impl From<[f32; 3]> for Vec3 {
     }
 }
 
+impl Into<[f32; 3]> for Vec3 {
+    fn into(self) -> [f32; 3] {
+        [self.x, self.y, self.z]
+    }
+}
 
 impl PartialEq for Vec3 {
     fn eq(&self, o: &Self) -> bool {
@@ -165,7 +170,6 @@ impl Div for Vec3 {
         }
     }
 }
-
 
 impl Add<f32> for Vec3 {
     type Output = Vec3;
