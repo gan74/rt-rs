@@ -1,0 +1,9 @@
+[package]
+name = "rt-rs"
+version = "0.1.0"
+authors = ["gan74 <gregoire.angerand@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+gltf = "0.15"
+image = "*"
