@@ -47,7 +47,7 @@ impl AABB {
 impl Hittable for AABB {
     type Result = ();
 
-    fn hit(&self, ray: &Ray) -> Option<Self::Result> {
+    fn hit(&self, ray: Ray) -> Option<Self::Result> {
         let origin: [f32; 3] = ray.orig.into();
         let direction: [f32; 3] = ray.dir.into();
         let min: [f32; 3] = self.min.into();

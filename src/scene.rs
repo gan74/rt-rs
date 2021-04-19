@@ -10,6 +10,8 @@ use crate::color::*;
 
 use gltf;
 
+use rand::prelude::*;
+
 
 
 pub struct PointLight {
@@ -40,20 +42,26 @@ impl Scene {
         self.camera
     }
 
+    pub fn generate_ray(&self, u: f32, v: f32) -> Ray {
+        self.camera.generate_ray(u, v)
+    }
 
-    pub fn trace(&self, u: f32, v: f32) -> Color {
-        let ray = self.camera.generate_ray(u, v);
+    pub fn trace(&self, ray: Ray, rng: &mut ThreadRng, max_rays: usize) -> Color {
+        if max_rays == 0 {
+            return Color::new(0.0, 0.0, 0.0);
+        }
 
-        match self.hit(&ray) {
+        match self.hit(ray) {
             Some(hit) => {
-                Color {
-                    r: hit.norm.x * 0.5 + 0.5,
-                    g: hit.norm.y * 0.5 + 0.5,
-                    b: hit.norm.z * 0.5 + 0.5,
-                }
+                let new_dir = hit.norm + random_unit_vector(rng);
+                let new_ray = Ray::new_with_epsilon(hit.pos, new_dir);
+                self.trace(new_ray, rng, max_rays - 1) * 0.5
             },
 
-            None => Color::from(0.0)
+            None => {
+                let v = ray.dir.z.max(0.0);
+                Color::new(0.25, 0.35, 0.5) * v + (1.0 - v)
+            },
         }
     }
 }
@@ -61,11 +69,11 @@ impl Scene {
 impl Hittable for Scene {
     type Result = HitRecord;
 
-    fn hit(&self, ray: &Ray) -> Option<Self::Result> {
+    fn hit(&self, ray: Ray) -> Option<Self::Result> {
         let mut hit_rec: Option<HitRecord> = None;
 
         for mesh in self.meshes.iter() {
-            if let Some(hit) = mesh.hit(&ray) {
+            if let Some(hit) = mesh.hit(ray) {
                 if hit_rec.is_none() || hit.dist < hit_rec.unwrap().dist {
                     hit_rec = Some(hit);
                 }
@@ -80,6 +88,19 @@ impl Hittable for Scene {
 
 
 
+fn random_unit_vector(rng: &mut ThreadRng) -> Vec3 {
+    loop {
+        let v = Vec3::new(
+            rng.gen::<f32>() * 2.0 - 1.0,
+            rng.gen::<f32>() * 2.0 - 1.0,
+            rng.gen::<f32>() * 2.0 - 1.0,
+        );
+
+        if v.length2() <= 1.0 {
+            return v.normalized();
+        }
+    }
+}
 
 
 

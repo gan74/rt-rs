@@ -11,7 +11,7 @@ pub struct HitRecord {
 pub trait Hittable {
     type Result;
 
-    fn hit(&self, ray: &Ray) -> Option<Self::Result>;
+    fn hit(&self, ray: Ray) -> Option<Self::Result>;
 }
 
 
@@ -26,7 +26,7 @@ pub struct Sphere {
 impl Hittable for Sphere {
     type Result = HitRecord;
 
-    fn hit(&self, ray: &Ray) -> Option<Self::Result> {
+    fn hit(&self, ray: Ray) -> Option<Self::Result> {
         let dir = ray.orig - self.center;
         let a = ray.dir.dot(ray.dir);
         let b = ray.dir.dot(dir);

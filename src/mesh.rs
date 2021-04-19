@@ -34,13 +34,12 @@ impl Mesh {
 impl Hittable for Mesh {
     type Result = HitRecord;
 
-    fn hit(&self, ray: &Ray) -> Option<Self::Result> {
+    fn hit(&self, ray: Ray) -> Option<Self::Result> {
         if self.aabb.hit(ray).is_none() {
             return None;
         }
 
         let mut hit: Option<HitRecord> = None;
-        let mut depth = f32::MAX;
 
         for ind in self.triangles.iter() {
             let tri =  [
@@ -57,16 +56,20 @@ impl Hittable for Mesh {
 
                 let dist = ray.orig.distance(pos);
                 if hit.is_none() || dist < hit.unwrap().dist {
-                    let norm =
+                    /*let norm =
                         self.vertices[ind[0] as usize].norm * bary[0] +
                         self.vertices[ind[1] as usize].norm * bary[1] +
-                        self.vertices[ind[2] as usize].norm * bary[2];
+                        self.vertices[ind[2] as usize].norm * bary[2];*/
 
-                    hit = Some(HitRecord {
-                        dist: dist,
-                        pos: pos,
-                        norm: norm
-                    });
+                    let norm = (tri[1] - tri[0]).cross(tri[2] - tri[0]).normalized();
+
+                    if norm.dot(ray.dir) < 0.0 { // Backfaces
+                        hit = Some(HitRecord {
+                            dist: dist,
+                            pos: pos,
+                            norm: norm.normalized(),
+                        });
+                    }
                 }
             }
         }
@@ -78,7 +81,7 @@ impl Hittable for Mesh {
 impl Hittable for [Vec3; 3] {
     type Result = [f32; 3];
 
-    fn hit(&self, ray: &Ray) -> Option<Self::Result> {
+    fn hit(&self, ray: Ray) -> Option<Self::Result> {
         let edge1 = self[1] - self[0];
         let edge2 = self[2] - self[0];
 
@@ -104,6 +107,10 @@ impl Hittable for [Vec3; 3] {
 
         let v = ray.dir.dot(qvec) * inv_det;
         if v < 0.0 || u + v > 1.0 {
+            return None;
+        }
+
+        if edge2.dot(qvec) * inv_det < 0.0 {
             return None;
         }
 

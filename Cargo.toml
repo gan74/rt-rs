@@ -7,3 +7,4 @@ edition = "2018"
 [dependencies]
 gltf = { version = "0.15", features = ["KHR_lights_punctual"] }
 image = "*"
+rand = "*"

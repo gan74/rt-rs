@@ -8,13 +8,29 @@ pub struct Color {
 }
 
 
+impl Color {
+    pub fn new(r: f32, g: f32, b: f32) -> Color {
+        Color {
+            r: r,
+            g: g,
+            b: b,
+        }
+    }
+
+    pub fn to_srgb(&self) -> [u8; 3] {
+        [to_srgb(self.r), to_srgb(self.g), to_srgb(self.b)]
+    }
+}
+
+fn to_srgb(x: f32) -> u8 {
+    let gamma = x.max(0.0).powf(1.0 / 2.2);
+    (gamma * 255.0).min(255.0) as u8
+}
+
+
 impl From<f32> for Color {
     fn from(x: f32) -> Color {
-        Color {
-            r: x,
-            g: x,
-            b: x,
-        }
+        Color::new(x, x, x)
     }
 }
 
