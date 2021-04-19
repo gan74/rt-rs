@@ -4,84 +4,77 @@ use crate::vec::*;
 use crate::mesh::*;
 use crate::transform::*;
 use crate::ray::*;
+use crate::hit::*;
+use crate::camera::*;
+use crate::color::*;
 
 use gltf;
 
 
-#[derive(Debug, Clone, Copy)]
-pub struct Camera {
-    transform: Transform,
-    tan_half_vfov: f32,
-    ratio: f32,
+
+pub struct PointLight {
+    shape: Sphere,
+    intensity: f32,
 }
 
 pub struct Scene {
     meshes: Vec<Mesh>,
     camera: Camera,
+
+    point_lights: Vec<PointLight>,
 }
 
 
 
-
-impl Camera {
-    pub fn new(tr: Transform, vfov: f32, ratio: f32) -> Camera {
-        Camera {
-            transform: tr,
-            tan_half_vfov: (vfov * 0.5).tan(),
-            ratio: ratio,
-        }
-    }
-
-    pub fn generate_ray(&self, u: f32, v: f32) -> Ray {
-        let x = (u * 2.0 - 1.0) * self.tan_half_vfov;
-        let y = (v * 2.0 - 1.0) * self.tan_half_vfov;
-
-        let dir = self.transform.right() * x + self.transform.up() * y + self.transform.forward();
-        Ray::new(self.transform.position(), dir)
-    }
-
-    pub fn transform(&self) -> Transform {
-        self.transform
-    }
-
-    pub fn ratio(&self) -> f32 {
-        self.ratio
-    }
-}
 
 impl Scene {
     pub fn new() -> Scene {
         Scene {
             meshes: Vec::new(),
             camera: Camera::new(Transform::identity(), 60.0_f32.to_radians(), 1.0),
+            point_lights: Vec::new(),
         }
-    }
-
-    pub fn trace_ray(&self, u: f32, v: f32) -> Option<Vec3> {
-        let ray = self.camera.generate_ray(u, v);
-
-        let mut hit = None;
-        let mut depth_sq = f32::MAX;
-
-        for mesh in self.meshes.iter() {
-            if let Some(pos) = mesh.intersects(&ray) {
-                let dist_sq = ray.origin().distance2(pos);
-                if dist_sq < depth_sq {
-                    depth_sq = dist_sq;
-                    hit = Some(pos);
-                }
-            }
-        }
-
-        hit
     }
 
     pub fn camera(&self) -> Camera {
         self.camera
     }
+
+
+    pub fn trace(&self, u: f32, v: f32) -> Color {
+        let ray = self.camera.generate_ray(u, v);
+
+        match self.hit(&ray) {
+            Some(hit) => {
+                Color {
+                    r: hit.norm.x * 0.5 + 0.5,
+                    g: hit.norm.y * 0.5 + 0.5,
+                    b: hit.norm.z * 0.5 + 0.5,
+                }
+            },
+
+            None => Color::from(0.0)
+        }
+    }
 }
 
+impl Hittable for Scene {
+    type Result = HitRecord;
 
+    fn hit(&self, ray: &Ray) -> Option<Self::Result> {
+        let mut hit_rec: Option<HitRecord> = None;
+
+        for mesh in self.meshes.iter() {
+            if let Some(hit) = mesh.hit(&ray) {
+                if hit_rec.is_none() || hit.dist < hit_rec.unwrap().dist {
+                    hit_rec = Some(hit);
+                }
+            }
+        }
+
+        hit_rec
+    }
+}
 
 
 
@@ -101,16 +94,19 @@ pub fn import_scene<P: AsRef<Path>>(path: P) -> gltf::Result<Scene> {
             if let Some(mesh) = node.mesh() {
                 for primitive in mesh.primitives() {
                     let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
-                    match (reader.read_positions(), reader.read_indices()) {
-                        (Some(positions), Some(indices)) => {
-                            let vertices = positions.map(|p| Vertex { pos: transform.transform_pos(Vec3::from(p)) }).collect();
+                    match (reader.read_positions(), reader.read_normals(), reader.read_indices()) {
+                        (Some(positions), Some(normals), Some(indices)) => {
+                            let vertices = positions.zip(normals).map(|(p, n)| Vertex {
+                                pos: transform.transform_pos(Vec3::from(p)),
+                                norm: transform.transform_dir(Vec3::from(n)).normalized(),
+                            }).collect();
                             let indices = indices.into_u32().collect::<Vec<_>>();
                             let triangles = indices.as_slice().chunks(3).map(|sl| [sl[0], sl[1], sl[2]]).collect();
                             scene.meshes.push(Mesh::new(vertices, triangles));
                         },
 
                         _ => {
-
+                            eprintln!("Incomplete mesh");
                         },
                     }
                 }
@@ -134,6 +130,17 @@ pub fn import_scene<P: AsRef<Path>>(path: P) -> gltf::Result<Scene> {
                 }
             }
         }
+    }
+
+    {
+        let light = PointLight {
+            shape: Sphere {
+                center: Vec3::new(5.0, 1.0, 6.0),
+                radius: 0.25,
+            },
+            intensity: 10.0
+        };
+        scene.point_lights.push(light);
     }
 
     Ok(scene)

@@ -5,5 +5,5 @@ authors = ["gan74 <gregoire.angerand@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-gltf = "0.15"
+gltf = { version = "0.15", features = ["KHR_lights_punctual"] }
 image = "*"

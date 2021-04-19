@@ -50,9 +50,12 @@ impl Transform {
     }
 
     pub fn transform_pos(&self, pos: Vec3) -> Vec3 {
-        self.basis[0] * pos.x +
-        self.basis[1] * pos.y +
-        self.basis[2] * pos.z +
-        self.pos
+        self.transform_dir(pos) + self.pos
+    }
+
+    pub fn transform_dir(&self, dir: Vec3) -> Vec3 {
+        self.basis[0] * dir.x +
+        self.basis[1] * dir.y +
+        self.basis[2] * dir.z
     }
 }

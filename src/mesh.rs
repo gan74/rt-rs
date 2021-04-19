@@ -2,10 +2,12 @@
 use crate::vec::*;
 use crate::aabb::*;
 use crate::ray::*;
+use crate::hit::*;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Vertex {
     pub pos: Vec3,
+    pub norm: Vec3,
 }
 
 pub struct Mesh {
@@ -29,31 +31,42 @@ impl Mesh {
 }
 
 
-impl Intersectable for Mesh {
-    type Result = Vec3;
+impl Hittable for Mesh {
+    type Result = HitRecord;
 
-    fn intersects(&self, ray: &Ray) -> Option<Self::Result> {
-        if self.aabb.intersects(ray).is_none() {
+    fn hit(&self, ray: &Ray) -> Option<Self::Result> {
+        if self.aabb.hit(ray).is_none() {
             return None;
         }
 
-        let mut hit = None;
-        let mut depth_sq = f32::MAX;
+        let mut hit: Option<HitRecord> = None;
+        let mut depth = f32::MAX;
 
-        for tri in self.triangles.iter() {
+        for ind in self.triangles.iter() {
             let tri =  [
-                self.vertices[tri[0] as usize].pos,
-                self.vertices[tri[1] as usize].pos,
-                self.vertices[tri[2] as usize].pos,
+                self.vertices[ind[0] as usize].pos,
+                self.vertices[ind[1] as usize].pos,
+                self.vertices[ind[2] as usize].pos,
             ];
 
-            if let Some(bary) = tri.intersects(ray) {
-                let pos = tri[0] * bary[0]+ tri[1] * bary[1] + tri[2] * bary[2];
-                let dist_sq = ray.origin().distance2(pos);
+            if let Some(bary) = tri.hit(ray) {
+                let pos =
+                    tri[0] * bary[0] +
+                    tri[1] * bary[1] +
+                    tri[2] * bary[2];
 
-                if dist_sq < depth_sq {
-                    depth_sq = dist_sq;
-                    hit = Some(pos);
+                let dist = ray.orig.distance(pos);
+                if hit.is_none() || dist < hit.unwrap().dist {
+                    let norm =
+                        self.vertices[ind[0] as usize].norm * bary[0] +
+                        self.vertices[ind[1] as usize].norm * bary[1] +
+                        self.vertices[ind[2] as usize].norm * bary[2];
+
+                    hit = Some(HitRecord {
+                        dist: dist,
+                        pos: pos,
+                        norm: norm
+                    });
                 }
             }
         }
@@ -62,14 +75,14 @@ impl Intersectable for Mesh {
     }
 }
 
-impl Intersectable for [Vec3; 3] {
+impl Hittable for [Vec3; 3] {
     type Result = [f32; 3];
 
-    fn intersects(&self, ray: &Ray) -> Option<Self::Result> {
+    fn hit(&self, ray: &Ray) -> Option<Self::Result> {
         let edge1 = self[1] - self[0];
         let edge2 = self[2] - self[0];
 
-        let pvec = ray.direction().cross(edge2);
+        let pvec = ray.dir.cross(edge2);
 
         let det = edge1.dot(pvec);
 
@@ -80,7 +93,7 @@ impl Intersectable for [Vec3; 3] {
 
         let inv_det = 1.0 / det;
 
-        let tvec = ray.origin() - self[0];
+        let tvec = ray.orig - self[0];
 
         let u = tvec.dot(pvec) * inv_det;
         if u < 0.0 || u > 1.0 {
@@ -89,7 +102,7 @@ impl Intersectable for [Vec3; 3] {
 
         let qvec = tvec.cross(edge1);
 
-        let v = ray.direction().dot(qvec) * inv_det;
+        let v = ray.dir.dot(qvec) * inv_det;
         if v < 0.0 || u + v > 1.0 {
             return None;
         }

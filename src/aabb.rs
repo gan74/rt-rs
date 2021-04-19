@@ -1,6 +1,7 @@
 
 use crate::vec::*;
 use crate::ray::*;
+use crate::hit::*;
 
 #[derive(Debug, Clone, Copy)]
 pub struct AABB {
@@ -36,15 +37,19 @@ impl AABB {
         pos.y < self.max.y &&
         pos.z < self.max.z
     }
+
+    pub fn center(&self) -> Vec3 {
+        (self.min + self.max) * 0.5
+    }
 }
 
 
-impl Intersectable for AABB {
+impl Hittable for AABB {
     type Result = ();
 
-    fn intersects(&self, ray: &Ray) -> Option<Self::Result> {
-        let origin: [f32; 3] = ray.origin().into();
-        let direction: [f32; 3] = ray.direction().into();
+    fn hit(&self, ray: &Ray) -> Option<Self::Result> {
+        let origin: [f32; 3] = ray.orig.into();
+        let direction: [f32; 3] = ray.dir.into();
         let min: [f32; 3] = self.min.into();
         let max: [f32; 3] = self.max.into();
 
