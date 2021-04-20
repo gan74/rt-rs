@@ -12,6 +12,7 @@ pub struct Vertex {
 }
 
 pub struct Mesh {
+    //triangles: Vec<[u32; 3]>,
     bvh: BvhNode,
     vertices: Vec<Vertex>,
     material: Option<Material>,
@@ -20,6 +21,7 @@ pub struct Mesh {
 impl Mesh {
     pub fn new(vertices: Vec<Vertex>, triangles: Vec<[u32; 3]>) -> Mesh {
         Mesh {
+            //triangles: triangles.clone(),
             bvh: BvhNode::new(&vertices, triangles),
             vertices: vertices,
             material: None,
@@ -38,7 +40,7 @@ impl Mesh {
 
 
 
-    fn hit_triangles(&self, triangles: &[[u32; 3]], ray: Ray) -> Option<HitRecord> {
+    fn hit_triangles(&self, triangles: &[[u32; 3]], mut ray: Ray) -> Option<HitRecord> {
         let mut hit: Option<HitRecord> = None;
 
         for index in triangles.iter() {
@@ -54,22 +56,20 @@ impl Mesh {
                     tri[1] * bary[1] +
                     tri[2] * bary[2];
 
-                let dist = ray.orig.distance(pos);
-                if hit.is_none() || dist < hit.unwrap().dist {
-                    let norm =
-                        self.vertices[index[0] as usize].norm * bary[0] +
-                        self.vertices[index[1] as usize].norm * bary[1] +
-                        self.vertices[index[2] as usize].norm * bary[2];
+                let norm =
+                    self.vertices[index[0] as usize].norm * bary[0] +
+                    self.vertices[index[1] as usize].norm * bary[1] +
+                    self.vertices[index[2] as usize].norm * bary[2];
 
-                    /*if norm.dot(ray.dir) < 0.0*/ {
-                        hit = Some(HitRecord {
-                            dist: dist,
-                            pos: pos,
-                            norm: norm.normalized(),
-                            mat: self.material,
-                        });
-                    }
-                }
+                let dist = ray.orig.distance(pos);
+
+                ray = ray.with_max(dist);
+                hit = Some(HitRecord {
+                    dist: dist,
+                    pos: pos,
+                    norm: norm.normalized(),
+                    mat: self.material,
+                });
             }
         }
 
@@ -109,6 +109,7 @@ impl Hittable for Mesh {
     type Result = HitRecord;
 
     fn hit(&self, ray: Ray) -> Option<Self::Result> {
+        //self.hit_triangles(&self.triangles, ray)
         self.hit_bvh_node(&self.bvh, ray)
     }
 }
