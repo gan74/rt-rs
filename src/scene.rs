@@ -42,8 +42,19 @@ impl Scene {
         self.camera
     }
 
-    pub fn generate_ray(&self, u: f32, v: f32) -> Ray {
-        self.camera.generate_ray(u, v)
+    pub fn generate_ray(&self, rng: &mut ThreadRng, x: u32, y: u32, width: u32, height: u32) -> Ray {
+        let x = x as f32;
+        let y = y as f32;
+        let width = width as f32;
+        let height = height as f32;
+
+        let (x_min, x_max) = (x / width, (x + 1.0) / width);
+        let (y_min, y_max) = (y / height, (y + 1.0) / height);
+
+        let u = rng.gen::<f32>() * (x_max - x_min) + x_min;
+        let v = rng.gen::<f32>() * (y_max - y_min) + y_min;
+
+        self.camera.generate_ray(u, 1.0 - v)
     }
 
     pub fn trace(&self, ray: Ray, rng: &mut ThreadRng, max_rays: usize) -> Color {

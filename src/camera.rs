@@ -19,7 +19,7 @@ impl Camera {
     }
 
     pub fn generate_ray(&self, u: f32, v: f32) -> Ray {
-        let x = (u * 2.0 - 1.0) * self.tan_half_vfov;
+        let x = (u * 2.0 - 1.0) * self.tan_half_vfov * self.ratio;
         let y = (v * 2.0 - 1.0) * self.tan_half_vfov;
 
         let dir = self.transform.right() * x + self.transform.up() * y + self.transform.forward();
