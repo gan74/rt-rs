@@ -3,6 +3,7 @@ use crate::vec::*;
 use crate::aabb::*;
 use crate::ray::*;
 use crate::hit::*;
+use crate::material::*;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Vertex {
@@ -14,6 +15,7 @@ pub struct Mesh {
     aabb: AABB,
     vertices: Vec<Vertex>,
     triangles: Vec<[u32; 3]>,
+    material: Option<Material>,
 }
 
 impl Mesh {
@@ -22,7 +24,14 @@ impl Mesh {
             aabb: AABB::from_points(vertices.iter().map(|v| v.pos)).unwrap(),
             vertices: vertices,
             triangles: triangles,
+            material: None,
         }
+    }
+
+    pub fn new_with_material(vertices: Vec<Vertex>, triangles: Vec<[u32; 3]>, material: Material) -> Mesh {
+        let mut mesh = Mesh::new(vertices, triangles);
+        mesh.material = Some(material);
+        mesh
     }
 
     pub fn aabb(&self) -> AABB {
@@ -56,18 +65,17 @@ impl Hittable for Mesh {
 
                 let dist = ray.orig.distance(pos);
                 if hit.is_none() || dist < hit.unwrap().dist {
-                    /*let norm =
+                    let norm =
                         self.vertices[ind[0] as usize].norm * bary[0] +
                         self.vertices[ind[1] as usize].norm * bary[1] +
-                        self.vertices[ind[2] as usize].norm * bary[2];*/
+                        self.vertices[ind[2] as usize].norm * bary[2];
 
-                    let norm = (tri[1] - tri[0]).cross(tri[2] - tri[0]).normalized();
-
-                    if norm.dot(ray.dir) < 0.0 { // Backfaces
+                    /*if norm.dot(ray.dir) < 0.0*/ {
                         hit = Some(HitRecord {
                             dist: dist,
                             pos: pos,
                             norm: norm.normalized(),
+                            mat: self.material,
                         });
                     }
                 }

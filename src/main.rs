@@ -8,7 +8,6 @@ use std::time::Instant;
 use show_image::{ImageView, ImageInfo, WindowOptions, create_window, event};
 use rayon::prelude::*;
 
-
 mod vec;
 mod transform;
 mod mesh;
@@ -18,31 +17,37 @@ mod hit;
 mod camera;
 mod scene;
 mod color;
+mod material;
+mod integrator;
 
 use crate::scene::*;
 use crate::color::*;
+use crate::integrator::*;
 
+const SPP: usize = 16;
 
 #[show_image::main]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let scene = import_scene("assets/scene.gltf").expect("unable to import scene");
-    let height = 512;
-    let width = (height as f32 * scene.camera().ratio()) as u32;
+    let camera = scene.camera();
 
-    let spp = 16;
+    let height = 512;
+    let width = (height as f32 * camera.ratio()) as u32;
 
     let start = Instant::now();
-    let data: Vec<_> = (0..width * height).into_par_iter().map(|i| {
+
+    let data = (0..width * height).into_par_iter().map(|i| {
         let mut rng = rand::thread_rng();
-        let ray = scene.generate_ray(&mut rng, i % width, i / width, width, height);
 
         let mut color = Color::from(0.0);
-        for _ in 0..spp {
-            color = color + scene.trace(ray, &mut rng, 5);
+        for _ in 0..SPP {
+            let ray = Integrator::generate_ray(&camera, i % width, i / width, width, height, &mut rng);
+            color = color + Integrator::trace(&scene, ray, &mut rng, 5);
         }
 
-        (color / spp as f32).to_srgb()
-    }).collect();
+        (color / SPP as f32).to_srgb()
+    }).collect::<Vec<_>>();
+
     println!("Done in {:?}", Instant::now() - start);
 
 

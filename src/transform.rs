@@ -33,16 +33,8 @@ impl Transform {
         }
     }
 
-    pub fn forward(&self) -> Vec3 {
-        self.basis[1]
-    }
-
-    pub fn right(&self) -> Vec3 {
-        self.basis[0]
-    }
-
-    pub fn up(&self) -> Vec3 {
-        self.basis[2]
+    pub fn basis(&self) -> &[Vec3; 3] {
+        &self.basis
     }
 
     pub fn position(&self) -> Vec3 {
@@ -57,5 +49,16 @@ impl Transform {
         self.basis[0] * dir.x +
         self.basis[1] * dir.y +
         self.basis[2] * dir.z
+    }
+
+    pub fn then(&self, o: Transform) -> Transform {
+        Transform {
+            basis: [
+                self.transform_dir(o.basis[0]),
+                self.transform_dir(o.basis[1]),
+                self.transform_dir(o.basis[2]),
+            ],
+            pos: self.transform_pos(o.pos),
+        }
     }
 }

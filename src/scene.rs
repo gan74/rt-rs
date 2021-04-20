@@ -7,73 +7,25 @@ use crate::ray::*;
 use crate::hit::*;
 use crate::camera::*;
 use crate::color::*;
+use crate::material::*;
 
 use gltf;
-
-use rand::prelude::*;
-
-
-
-pub struct PointLight {
-    shape: Sphere,
-    intensity: f32,
-}
 
 pub struct Scene {
     meshes: Vec<Mesh>,
     camera: Camera,
-
-    point_lights: Vec<PointLight>,
 }
-
-
-
 
 impl Scene {
     pub fn new() -> Scene {
         Scene {
             meshes: Vec::new(),
             camera: Camera::new(Transform::identity(), 60.0_f32.to_radians(), 1.0),
-            point_lights: Vec::new(),
         }
     }
 
     pub fn camera(&self) -> Camera {
         self.camera
-    }
-
-    pub fn generate_ray(&self, rng: &mut ThreadRng, x: u32, y: u32, width: u32, height: u32) -> Ray {
-        let x = x as f32;
-        let y = y as f32;
-        let width = width as f32;
-        let height = height as f32;
-
-        let (x_min, x_max) = (x / width, (x + 1.0) / width);
-        let (y_min, y_max) = (y / height, (y + 1.0) / height);
-
-        let u = rng.gen::<f32>() * (x_max - x_min) + x_min;
-        let v = rng.gen::<f32>() * (y_max - y_min) + y_min;
-
-        self.camera.generate_ray(u, 1.0 - v)
-    }
-
-    pub fn trace(&self, ray: Ray, rng: &mut ThreadRng, max_rays: usize) -> Color {
-        if max_rays == 0 {
-            return Color::from(0.0);
-        }
-
-        match self.hit(ray) {
-            Some(hit) => {
-                let new_dir = hit.norm + random_unit_vector(rng);
-                let new_ray = Ray::new_with_epsilon(hit.pos, new_dir);
-                self.trace(new_ray, rng, max_rays - 1) * 0.5
-            },
-
-            None => {
-                let v = ray.dir.z.max(0.0);
-                Color::new(0.25, 0.35, 0.5) * v + (1.0 - v)
-            },
-        }
     }
 }
 
@@ -98,31 +50,20 @@ impl Hittable for Scene {
 
 
 
-
-fn random_unit_vector(rng: &mut ThreadRng) -> Vec3 {
-    loop {
-        let v = Vec3::new(
-            rng.gen::<f32>() * 2.0 - 1.0,
-            rng.gen::<f32>() * 2.0 - 1.0,
-            rng.gen::<f32>() * 2.0 - 1.0,
-        );
-
-        if v.length2() <= 1.0 {
-            return v.normalized();
-        }
-    }
-}
-
-
-
 pub fn import_scene<P: AsRef<Path>>(path: P) -> gltf::Result<Scene> {
     let (document, buffers, _images) = gltf::import(path)?;
 
+
     let mut scene = Scene::new();
 
-    if let Some(sce) = document.default_scene() {
-        for node in sce.nodes() {
-            let transform = import_transform(node.transform());
+    let mut nodes = document.scenes().flat_map(|s| s.nodes()).map(|n| (Transform::identity(), n)).collect::<Vec<_>>();
+    while !nodes.is_empty() {
+        let mut children = Vec::new();
+
+        for (parent, node) in nodes {
+            let transform = parent.then(import_transform(node.transform()));
+            children.extend(node.children().map(|n| (transform, n)));
+
             if let Some(mesh) = node.mesh() {
                 for primitive in mesh.primitives() {
                     let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
@@ -132,9 +73,11 @@ pub fn import_scene<P: AsRef<Path>>(path: P) -> gltf::Result<Scene> {
                                 pos: transform.transform_pos(Vec3::from(p)),
                                 norm: transform.transform_dir(Vec3::from(n)).normalized(),
                             }).collect();
+
                             let indices = indices.into_u32().collect::<Vec<_>>();
                             let triangles = indices.as_slice().chunks(3).map(|sl| [sl[0], sl[1], sl[2]]).collect();
-                            scene.meshes.push(Mesh::new(vertices, triangles));
+                            let material = import_material(primitive.material());
+                            scene.meshes.push(Mesh::new_with_material(vertices, triangles, material));
                         },
 
                         _ => {
@@ -147,12 +90,6 @@ pub fn import_scene<P: AsRef<Path>>(path: P) -> gltf::Result<Scene> {
             if let Some(cam) = node.camera() {
                 match cam.projection() {
                     gltf::camera::Projection::Perspective(p) => {
-                        //println!("{:?}", node.transform().matrix());
-                        let transform = Transform::from_basis(transform.right(), -transform.up(), transform.forward()).with_pos(transform.position());
-                        println!("camera.position = {}", transform.position());
-                        println!("camera.forward  = {}", transform.forward());
-                        println!("camera.right    = {}", transform.right());
-                        println!("camera.up       = {}", transform.up());
                         scene.camera = Camera::new(transform, p.yfov(), p.aspect_ratio().unwrap_or(1.0));
                     },
 
@@ -162,25 +99,37 @@ pub fn import_scene<P: AsRef<Path>>(path: P) -> gltf::Result<Scene> {
                 }
             }
         }
+        nodes = children;
     }
 
+
     {
-        let light = PointLight {
-            shape: Sphere {
-                center: Vec3::new(5.0, 1.0, 6.0),
-                radius: 0.25,
-            },
-            intensity: 10.0
-        };
-        scene.point_lights.push(light);
+        println!("camera.position = {}", scene.camera.position());
+        println!("camera.forward  = {}", scene.camera.forward());
+        println!("camera.right    = {}", scene.camera.right());
+        println!("camera.up       = {}", scene.camera.up());
+        println!("{} meshes", scene.meshes.len());
     }
 
     Ok(scene)
 }
 
+fn import_material(mat: gltf::Material) -> Material {
+    let pbr = mat.pbr_metallic_roughness();
+    let color = pbr.base_color_factor();
+    let color = Color::new(color[0], color[1], color[2]);
+    if pbr.metallic_factor() > 0.5 {
+        Material::Metal {
+            color: color,
+            fuzz: pbr.roughness_factor(),
+        }
+    } else {
+        Material::Diffuse(color)
+    }
+}
 
 fn import_transform(tr: gltf::scene::Transform) -> Transform {
     let matrix = tr.clone().matrix();
-    let column = |row: usize| Vec3::new(matrix[row][0], matrix[row][1], matrix[row][2]);
+    let column = |col: usize| Vec3::new(matrix[col][0], matrix[col][1], matrix[col][2]);
     Transform::from_basis(column(0), column(1), column(2)).with_pos(column(3))
 }

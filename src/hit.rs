@@ -1,11 +1,14 @@
+
 use crate::vec::*;
 use crate::ray::*;
+use crate::material::*;
 
 #[derive(Debug, Clone, Copy)]
 pub struct HitRecord {
     pub dist: f32,
     pub pos: Vec3,
     pub norm: Vec3,
+    pub mat: Option<Material>,
 }
 
 pub trait Hittable {
@@ -13,7 +16,6 @@ pub trait Hittable {
 
     fn hit(&self, ray: Ray) -> Option<Self::Result>;
 }
-
 
 
 
@@ -50,6 +52,7 @@ impl Hittable for Sphere {
             dist: dist,
             pos: hit_pos,
             norm: (hit_pos - self.center).normalized(),
+            mat: None,
         })
     }
 }

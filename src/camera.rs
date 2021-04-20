@@ -1,5 +1,6 @@
 
 use crate::transform::*;
+use crate::vec::*;
 use crate::ray::*;
 
 #[derive(Debug, Clone, Copy)]
@@ -22,15 +23,27 @@ impl Camera {
         let x = (u * 2.0 - 1.0) * self.tan_half_vfov * self.ratio;
         let y = (v * 2.0 - 1.0) * self.tan_half_vfov;
 
-        let dir = self.transform.right() * x + self.transform.up() * y + self.transform.forward();
-        Ray::new(self.transform.position(), dir)
-    }
-
-    pub fn transform(&self) -> Transform {
-        self.transform
+        let dir = self.right() * x + self.up() * y + self.forward();
+        Ray::new(self.position(), dir)
     }
 
     pub fn ratio(&self) -> f32 {
         self.ratio
+    }
+
+    pub fn right(&self) -> Vec3 {
+        self.transform.basis()[0]
+    }
+
+    pub fn forward(&self) -> Vec3 {
+        -self.transform.basis()[2]
+    }
+
+    pub fn up(&self) -> Vec3 {
+        self.transform.basis()[1]
+    }
+
+    pub fn position(&self) -> Vec3 {
+        self.transform.position()
     }
 }

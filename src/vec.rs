@@ -70,6 +70,10 @@ impl Vec3 {
             z: f32::min(self.z, o.z),
         }
     }
+
+    pub fn reflected(&self, n: Vec3) -> Vec3 {
+        *self - n * self.dot(n) * 2.0
+    }
 }
 
 
