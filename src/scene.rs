@@ -116,15 +116,21 @@ pub fn import_scene<P: AsRef<Path>>(path: P) -> gltf::Result<Scene> {
 
 fn import_material(mat: gltf::Material) -> Material {
     let pbr = mat.pbr_metallic_roughness();
-    let color = pbr.base_color_factor();
-    let color = Color::new(color[0], color[1], color[2]);
-    if pbr.metallic_factor() > 0.5 {
-        Material::Metal {
+    let to_color = |col: &[f32]| Color::new(col[0], col[1], col[2]);
+
+    let color = to_color(&pbr.base_color_factor()[0..3]);
+    let brdf = if pbr.metallic_factor() > 0.5 {
+        Brdf::Metal {
             color: color,
             fuzz: pbr.roughness_factor(),
         }
     } else {
-        Material::Diffuse(color)
+        Brdf::Diffuse(color)
+    };
+
+    Material {
+        brdf: brdf,
+        emission: to_color(&mat.emissive_factor()),
     }
 }
 
