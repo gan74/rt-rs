@@ -5,6 +5,7 @@ use crate::vec::*;
 pub struct Ray {
     pub orig: Vec3,
     pub dir: Vec3,
+    pub max: f32
 }
 
 impl Ray {
@@ -12,6 +13,7 @@ impl Ray {
         Ray {
             orig: orig,
             dir: dir.normalized(),
+            max: f32::MAX,
         }
     }
 
@@ -20,12 +22,20 @@ impl Ray {
         Ray {
             orig: ray.orig + ray.dir * 0.00001,
             dir: ray.dir,
+            max: f32::MAX,
         }
     }
 
-
     pub fn along(&self, t: f32) -> Vec3 {
         self.orig + self.dir * t
+    }
+
+    pub fn with_max(self, max: f32) -> Ray {
+        Ray {
+            orig: self.orig,
+            dir: self.dir,
+            max: max,
+        }
     }
 }
 

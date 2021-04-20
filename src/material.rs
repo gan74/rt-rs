@@ -4,7 +4,7 @@ use crate::vec::*;
 use rand::prelude::*;
 
 #[derive(Debug, Clone, Copy)]
-pub enum Brdf {
+pub enum Material {
     Diffuse(Color),
     Metal {
         color: Color,
@@ -12,19 +12,11 @@ pub enum Brdf {
     }
 }
 
-
-#[derive(Debug, Clone, Copy)]
-pub struct Material {
-    pub brdf: Brdf,
-    pub emission: Color,
-}
-
-
-impl Brdf {
+impl Material {
     pub fn scatter(&self, in_dir: Vec3, norm: Vec3, rng: &mut ThreadRng) -> (Color, Vec3) {
         match self {
-            Brdf::Diffuse(color) => (*color, random_in_hemisphere(norm, rng)),
-            Brdf::Metal { color, fuzz } => {
+            Material::Diffuse(color) => (*color, random_in_hemisphere(norm, rng)),
+            Material::Metal { color, fuzz } => {
                 let reflected = in_dir.reflected(norm) + random_unit_vector(rng) * *fuzz;
                 (*color, reflected)
             },

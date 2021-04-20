@@ -98,7 +98,7 @@ impl Hittable for [Vec3; 3] {
         let det = edge1.dot(pvec);
 
         const EPSILON: f32 = 0.00001;
-        if det < EPSILON/* && det > -EPSILON*/ {
+        if det < EPSILON {
             return None;
         }
 
@@ -118,7 +118,8 @@ impl Hittable for [Vec3; 3] {
             return None;
         }
 
-        if edge2.dot(qvec) * inv_det < 0.0 {
+        let t = edge2.dot(qvec) * inv_det;
+        if t < 0.0 || t > ray.max {
             return None;
         }
 

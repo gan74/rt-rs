@@ -53,8 +53,8 @@ impl Hittable for AABB {
         let min: [f32; 3] = self.min.into();
         let max: [f32; 3] = self.max.into();
 
-        let mut near = -f32::MAX;
-        let mut far = f32::MAX;
+        let mut near: f32 = 0.0;
+        let mut far = ray.max;
         for i in 0..3 {
             let origin = origin[i];
             let min = min[i];
@@ -80,10 +80,6 @@ impl Hittable for AABB {
             }
         }
 
-        if far >= 0.0 {
-            Some(())
-        } else {
-            None
-        }
+        Some(())
     }
 }

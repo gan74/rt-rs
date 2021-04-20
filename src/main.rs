@@ -24,7 +24,7 @@ use crate::scene::*;
 use crate::color::*;
 use crate::integrator::*;
 
-const SPP: usize = 128;
+const SPP: usize = 1;
 
 #[show_image::main]
 fn main() -> Result<(), Box<dyn std::error::Error>> {

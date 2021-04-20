@@ -1,5 +1,4 @@
 
-use crate::vec::*;
 use crate::ray::*;
 use crate::hit::*;
 use crate::camera::*;
@@ -32,22 +31,18 @@ impl Integrator {
             return Color::from(0.0);
         }
 
-        let default_mat = Material {
-            brdf: Brdf::Diffuse(Color::from(0.5)),
-            emission: Color::from(0.0),
-        };
+        let default_mat = Material::Diffuse(Color::from(0.5));
 
         match scene.hit(ray) {
             Some(hit) => {
                 let mat = hit.mat.unwrap_or(default_mat);
-                let (color, new_dir) = mat.brdf.scatter(ray.dir, hit.norm, rng);
-                Self::trace(scene, Ray::new_with_epsilon(hit.pos, new_dir), rng, max_rays - 1) * color + mat.emission
+                let (color, new_dir) = mat.scatter(ray.dir, hit.norm, rng);
+                Self::trace(scene, Ray::new_with_epsilon(hit.pos, new_dir), rng, max_rays - 1) * color
             },
 
             None => {
-                /*let v = (ray.dir.y + 1.0) * 0.5;
-                Color::new(0.5, 0.7, 1.0) * v + (1.0 - v)*/
-                Color::from(0.0)
+                let v = (ray.dir.y + 1.0) * 0.5;
+                Color::new(0.5, 0.7, 1.0) * v + (1.0 - v)
             },
         }
     }
