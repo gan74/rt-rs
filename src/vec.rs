@@ -207,3 +207,15 @@ impl Div<f32> for Vec3 {
     }
 }
 
+impl Index<usize> for Vec3 {
+    type Output = f32;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        match index {
+            0 => &self.x,
+            1 => &self.y,
+            2 => &self.z,
+            _ => panic!("vec3 index out of bound {}", index)
+        }
+    }
+}

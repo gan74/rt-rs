@@ -32,17 +32,14 @@ impl Scene {
 impl Hittable for Scene {
     type Result = HitRecord;
 
-    fn hit(&self, ray: Ray) -> Option<Self::Result> {
+    fn hit(&self, mut ray: Ray) -> Option<Self::Result> {
         let mut hit_rec: Option<HitRecord> = None;
-
         for mesh in self.meshes.iter() {
             if let Some(hit) = mesh.hit(ray) {
-                if hit_rec.is_none() || hit.dist < hit_rec.unwrap().dist {
-                    hit_rec = Some(hit);
-                }
+                ray = ray.with_max(hit.dist);
+                hit_rec = Some(hit);
             }
         }
-
         hit_rec
     }
 }
