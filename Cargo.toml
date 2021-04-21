@@ -6,6 +6,8 @@ edition = "2018"
 
 [dependencies]
 gltf = { version = "0.15", features = ["KHR_lights_punctual"] }
-show-image = { version = "0.8.2", features = ["save"] }
 rand = "*"
 rayon = "*"
+
+
+show-image = { git = "https://github.com/gan74/show-image-rs.git", branch = "resize_fixes", features = ["save"] }
