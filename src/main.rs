@@ -28,7 +28,7 @@ const SPP: usize = 16;
 
 #[show_image::main]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let scene = import_scene("assets/scene.gltf").expect("unable to import scene");
+    let scene = import_scene("assets/buggy.gltf").expect("unable to import scene");
     let camera = scene.camera();
 
     let height = 512;

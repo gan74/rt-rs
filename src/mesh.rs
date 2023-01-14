@@ -12,7 +12,6 @@ pub struct Vertex {
 }
 
 pub struct Mesh {
-    //triangles: Vec<[u32; 3]>,
     bvh: BvhNode,
     vertices: Vec<Vertex>,
     material: Option<Material>,
@@ -109,7 +108,6 @@ impl Hittable for Mesh {
     type Result = HitRecord;
 
     fn hit(&self, ray: Ray) -> Option<Self::Result> {
-        //self.hit_triangles(&self.triangles, ray)
         self.hit_bvh_node(&self.bvh, ray)
     }
 }
