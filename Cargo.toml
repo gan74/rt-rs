@@ -2,7 +2,8 @@
 name = "rt-rs"
 version = "0.1.0"
 authors = ["gan74 <gregoire.angerand@gmail.com>"]
-edition = "2018"
+edition = "2021"
+resolver = "2"
 
 [dependencies]
 gltf = { version = "0.15", features = ["KHR_lights_punctual"] }
@@ -10,4 +11,4 @@ rand = "*"
 rayon = "*"
 
 
-show-image = { git = "https://github.com/gan74/show-image-rs.git", branch = "resize_fixes", features = ["save"] }
+show-image = { version = "0.13.1", features = ["save"] }
