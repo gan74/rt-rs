@@ -5,10 +5,13 @@ authors = ["gan74 <gregoire.angerand@gmail.com>"]
 edition = "2021"
 resolver = "2"
 
+[profile.dev]
+opt-level = 3
+
 [dependencies]
 gltf = { version = "0.15", features = ["KHR_lights_punctual"] }
 rand = "*"
 rayon = "*"
 
-
 show-image = { version = "0.13.1", features = ["save"] }
+
