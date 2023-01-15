@@ -62,7 +62,7 @@ impl<T: Clone> Bvh<T> {
 
                 let mut hit_rec: Option<HitRecord> = None;
                 for child in children.iter() {
-                    if let Some(hit) = Bvh::<T>::trace_node(child, ray, hit_func) {
+                    if let Some(hit) = Bvh::trace_node(child, ray, hit_func) {
                         ray = ray.with_max(hit.dist);
                         hit_rec = Some(hit);
                     }
@@ -92,8 +92,8 @@ impl<T: Clone> BvhNode<T> {
 
         let next_axis = (axis + 1) % 3;
         let children = (
-            BvhNode::<T>::build(a, to_aabb, max_object_per_node, next_axis),
-            BvhNode::<T>::build(b, to_aabb, max_object_per_node, next_axis),
+            BvhNode::build(a, to_aabb, max_object_per_node, next_axis),
+            BvhNode::build(b, to_aabb, max_object_per_node, next_axis),
         );
 
         BvhNode {
