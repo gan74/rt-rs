@@ -27,20 +27,25 @@ mod surface;
 mod shapes;
 mod utils;
 
+
 use crate::scene::*;
 use crate::ray::*;
 use crate::color::*;
 use crate::integrator::*;
 
 
-const SPP: usize = 512;
+const SPP: usize = 16;
 const MAX_BOUNCES: usize = 5;
 
 
 #[show_image::main]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let start = Instant::now();
+
     let scene = import_scene("assets/scene.gltf").expect("unable to import scene");
     let camera = scene.camera();
+
+    println!("Loaded in {:?}", (Instant::now() - start));
 
     let height = 512;
     let width = (height as f32 * camera.ratio()) as u32;

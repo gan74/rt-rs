@@ -1,9 +1,11 @@
 
 use crate::ray::*;
 use crate::hit::*;
+use crate::scene::*;
 use crate::camera::*;
 use crate::color::*;
 use crate::material::*;
+use crate::utils::*;
 
 use rand::prelude::*;
 
@@ -29,9 +31,7 @@ impl Integrator {
         camera.generate_ray(u, 1.0 - v)
     }
 
-    pub fn trace<T, R, F>(scene: &T, ray: Ray, no_hit: &F, rng: &mut R, max_rays: usize) -> Color 
-        where T: Hittable<Result = HitRecord>, R: RngCore, F: Fn(Ray) -> Color {
-
+    pub fn trace<R: RngCore, F: Fn(Ray) -> Color>(scene: &Scene, ray: Ray, no_hit: &F, rng: &mut R, max_rays: usize) -> Color {
         if max_rays == 0 {
             return Color::from(0.0);
         }
@@ -41,9 +41,9 @@ impl Integrator {
                 let mut acc = hit.mat.map(|m| m.emissive).unwrap_or(Color::from(0.0));
 
                 // Light contrib
-                /*{
-                    acc += Self::light_contrib(scene, lights, ray, &hit, rng);
-                }*/
+                {
+                    //acc += Self::light_contrib(scene, ray, &hit, rng);
+                }
 
                 // Material contrib
                 {
@@ -62,23 +62,28 @@ impl Integrator {
         }
     }
 
-    /*fn light_contrib<T, R>(scene: &T, lights: &SurfaceGroup<Light>, ray: Ray, hit: &HitRecord, rng: &mut R) -> Color 
-        where T: Hittable<Result = HitRecord>, R: RngCore {
+    fn light_contrib<R: RngCore>(scene: &Scene, ray: Ray, hit: &HitRecord, rng: &mut R) -> Color {
+        if let Some(mat) = hit.mat {
+            if let Some((emitter, radiance)) = scene.sample_emitter_surface(rng) {
 
-        if let Some(light) = lights.sample(rng) {
-            let light_sample = light.sample(rng);
-            let to_light = light_sample.pos - hit.pos;
-            if light_sample.norm.dot(to_light) < 0.0 {
-                let mat = hit.mat.unwrap_or(default_material());
+                let emitter_point = emitter.sample(rng);
+                let to_emitter = emitter_point.pos - hit.pos;
+                let emitter_dist = to_emitter.length();
 
-                let color = mat.eval(hit.norm, to_light.normalized(), -ray.dir);
-                if !color.is_zero() && scene.hit(Ray::new_with_epsilon(hit.pos, to_light)).is_none() {
-                    return light.color;
+                if emitter_point.norm.dot(to_emitter) < 0.0 {
+                    let color = mat.eval(hit.norm, to_emitter / emitter_dist, -ray.dir);
+                    if !color.is_zero() {
+                        if let Some(shadow) = scene.hit(Ray::new_with_epsilon(hit.pos, to_emitter)) {
+                            if (shadow.dist - emitter_dist).abs() < EPSILON {
+                               return radiance * color;
+                            }
+                        }
+                    }
                 }
             }
         }
 
         Color::from(0.0)
-    }*/
+    }
 }
 

@@ -33,6 +33,10 @@ pub trait WithMaterial {
 
 
 impl Material {
+    pub fn is_emissive(&self) -> bool {
+        !self.emissive.is_zero()
+    }
+
     pub fn scatter<R: RngCore>(&self, in_dir: Vec3, norm: Vec3, rng: &mut R) -> MaterialScatter {
         let reflected = match self.kind {
             MaterialKind::Diffuse => random_in_hemisphere(norm, rng),
@@ -46,7 +50,7 @@ impl Material {
     }
 
     pub fn eval(&self, norm: Vec3, w_in: Vec3, w_out: Vec3) -> Color {
-        let intensity = match self.kind {
+        let refl = match self.kind {
             MaterialKind::Diffuse => {
                 let cos_out = norm.dot(w_out);
                 if cos_out < 0.0 || norm.dot(w_in) < 0.0 {
@@ -58,7 +62,7 @@ impl Material {
             _ => 0.0,
         };
 
-        self.color * intensity
+        self.color * refl
     }
 }
 

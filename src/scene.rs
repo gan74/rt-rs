@@ -10,11 +10,12 @@ use crate::ray::*;
 use crate::hit::*;
 use crate::camera::*;
 use crate::color::*;
+use crate::surface::*;
 use crate::material::*;
 
 use gltf;
 
-//use rand::prelude::*;
+use rand::prelude::*;
 
 
 const MAX_OBJECT_PER_NODE: usize = 2;
@@ -25,7 +26,7 @@ pub struct Scene {
     bvh: Bvh<u32>,
 
     emitters: Vec<u32>,
-    emitters_area: f32,
+    emitter_area: f32,
 
     camera: Camera,
 }
@@ -35,12 +36,28 @@ pub struct SceneBuilder {
     camera: Camera,
 }
 
-pub trait SceneObject : Hittable<Result = HitRecord> + WithAabb + WithMaterial + Sync {
+pub trait SceneObject: 
+    Hittable<Result = HitRecord> + 
+    Surface + 
+    WithAabb + 
+    WithMaterial + 
+    Sync {
+
+    fn surface(&self) -> &dyn Surface;
 }
 
 
 
-impl<T> SceneObject for T where T: Hittable<Result = HitRecord> + WithAabb + WithMaterial + Sync {
+impl<T> SceneObject for T where T: 
+    Hittable<Result = HitRecord> + 
+    Surface + 
+    WithAabb + 
+    WithMaterial + 
+    Sync {
+
+    fn surface(&self) -> &dyn Surface {
+        self
+    }
 }
 
 
@@ -49,6 +66,16 @@ impl Scene {
         self.camera
     }
 
+    pub fn sample_emitter_surface<R: RngCore>(&self, rng: &mut R) -> Option<(&dyn Surface, Color)> {
+        if self.emitters.is_empty() {
+            return None;
+        }
+
+        let emitter = &self.objects[rng.gen_range(0..self.emitters.len())];
+        let norm = emitter.area() / self.emitter_area;
+        return Some((emitter.surface(), emitter.material().emissive * norm));
+    } 
+
 
     fn new() -> Scene {
         Scene {
@@ -56,7 +83,7 @@ impl Scene {
             bvh: Bvh::empty(),
 
             emitters: Vec::new(),
-            emitters_area: 0.0,
+            emitter_area: 0.0,
 
             camera: Camera::new(Transform::identity(), 60.0_f32.to_radians(), 1.0),
         }
@@ -69,6 +96,8 @@ impl Scene {
     }
 
     fn build_emitters(&mut self) {
+        self.emitters = self.objects.iter().enumerate().filter(|obj| obj.1.material().is_emissive()).map(|i| i.0 as u32).collect();
+        self.emitter_area = self.emitters.iter().fold(0.0, |area, i| area + self.objects[*i as usize].area());
     }
 }
 

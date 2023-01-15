@@ -1,30 +1,69 @@
-
 use crate::vec::*;
 use crate::vertex::*;
 use crate::aabb::*;
 use crate::ray::*;
 use crate::hit::*;
 use crate::bvh::*;
+use crate::surface::*;
 use crate::material::*;
+use crate::utils::*;
+
+use rand::prelude::*;
 
 
 const MAX_TRI_PER_NODE: usize = 8;
 
+
 pub struct Mesh {
     bvh: Bvh<[u32; 3]>,
-    vertices: Vec<Vertex>,
-    material: Material,
-}
 
+    triangles: Vec<[u32; 3]>,
+    vertices: Vec<Vertex>,
+
+    material: Material,
+
+    area: f32,
+    triangle_areas: Vec<f32>,
+}
 
 impl Mesh {
     pub fn new(vertices: Vec<Vertex>, mut triangles: Vec<[u32; 3]>, material: Material) -> Mesh {
         let triangle_aabb = |tri: &[u32; 3]| Aabb::from_points(tri.iter().map(|i| vertices[*i as usize].pos)).unwrap();
-        Mesh {
+
+        let mut mesh = Mesh {
             bvh: Bvh::new(triangles.as_mut_slice(), triangle_aabb, MAX_TRI_PER_NODE),
+            triangles: triangles,
             vertices: vertices,
             material: material,
+            area: 0.0,
+            triangle_areas: Vec::new(),
+        };
+
+        mesh.build_surface();
+
+        mesh
+    }
+
+    fn build_surface(&mut self) {
+        let mut triangle_areas = self.triangles.iter().map(|index| {
+            let p = [
+                self.vertices[index[0] as usize].pos,
+                self.vertices[index[1] as usize].pos,
+                self.vertices[index[2] as usize].pos,
+            ];
+            (p[1] - p[0]).cross(p[2] - p[0]).length() * 0.5
+        }).collect::<Vec<_>>();
+
+        let mut total = 0.0;
+        for a in &mut triangle_areas {
+            total += *a;
+            *a = total;
         }
+
+        debug_assert!(total == triangle_areas.last().cloned().unwrap_or(0.0));
+
+        self.area = total;
+        self.triangle_areas = triangle_areas;
     }
 
 
@@ -32,22 +71,22 @@ impl Mesh {
         let mut hit: Option<HitRecord> = None;
 
         for index in triangles {
-            let tri =  [
-                self.vertices[index[0] as usize].pos,
-                self.vertices[index[1] as usize].pos,
-                self.vertices[index[2] as usize].pos,
+            let tri = [
+                self.vertices[index[0] as usize],
+                self.vertices[index[1] as usize],
+                self.vertices[index[2] as usize],
             ];
 
             if let Some(bary) = tri.hit(ray) {
                 let pos =
-                    tri[0] * bary[0] +
-                    tri[1] * bary[1] +
-                    tri[2] * bary[2];
+                    tri[0].pos * bary[0] +
+                    tri[1].pos * bary[1] +
+                    tri[2].pos * bary[2];
 
                 let norm =
-                    self.vertices[index[0] as usize].norm * bary[0] +
-                    self.vertices[index[1] as usize].norm * bary[1] +
-                    self.vertices[index[2] as usize].norm * bary[2];
+                    tri[0].norm * bary[0] +
+                    tri[1].norm * bary[1] +
+                    tri[2].norm * bary[2];
 
                 let dist = ray.orig.distance(pos);
 
@@ -62,6 +101,46 @@ impl Mesh {
         }
 
         hit
+    }
+}
+
+
+
+impl Surface for Mesh {
+    fn area(&self) -> f32 {
+        self.area
+    }
+
+    fn sample(&self, rng: &mut dyn RngCore) -> SurfaceSample {
+        let r = rng.gen::<f32>() * self.area;
+        let i = self.triangle_areas.partition_point(|a| *a < r);
+
+        debug_assert!(self.triangle_areas[i] >= r);
+
+        let index = self.triangles[i];
+
+        let tri = [
+            self.vertices[index[0] as usize],
+            self.vertices[index[1] as usize],
+            self.vertices[index[2] as usize],
+        ];
+
+        let bary = [1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0];
+
+        let pos =
+            tri[0].pos * bary[0] +
+            tri[1].pos * bary[1] +
+            tri[2].pos * bary[2];
+
+        let norm =
+            tri[0].norm * bary[0] +
+            tri[1].norm * bary[1] +
+            tri[2].norm * bary[2];
+
+        SurfaceSample {
+            pos: pos,
+            norm: norm,
+        }
     }
 }
 
@@ -86,6 +165,14 @@ impl Hittable for Mesh {
 }
 
 
+impl Hittable for [Vertex; 3] {
+    type Result = [f32; 3];
+
+    fn hit(&self, ray: Ray) -> Option<Self::Result> {
+        [self[0].pos, self[1].pos, self[2].pos].hit(ray)
+    }
+}
+
 impl Hittable for [Vec3; 3] {
     type Result = [f32; 3];
 
@@ -97,7 +184,6 @@ impl Hittable for [Vec3; 3] {
 
         let det = edge1.dot(pvec);
 
-        const EPSILON: f32 = 0.00001;
         if det < EPSILON {
             return None;
         }

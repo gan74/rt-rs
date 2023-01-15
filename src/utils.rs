@@ -3,6 +3,9 @@ use crate::vec::*;
 use rand::prelude::*;
 
 
+
+pub const EPSILON: f32 = 0.00001;
+
 pub fn random_unit_vector<R: RngCore>(rng: &mut R) -> Vec3 {
     loop {
         let v = Vec3::new(

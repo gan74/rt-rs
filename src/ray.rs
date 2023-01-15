@@ -1,5 +1,5 @@
-
 use crate::vec::*;
+use crate::utils::*;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Ray {
@@ -20,7 +20,7 @@ impl Ray {
     pub fn new_with_epsilon(orig: Vec3, dir: Vec3) -> Ray {
         let ray = Ray::new(orig, dir);
         Ray {
-            orig: ray.orig + ray.dir * 0.00001,
+            orig: ray.orig + ray.dir * EPSILON,
             dir: ray.dir,
             max: f32::MAX,
         }
