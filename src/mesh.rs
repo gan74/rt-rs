@@ -13,25 +13,19 @@ const MAX_TRI_PER_NODE: usize = 8;
 pub struct Mesh {
     bvh: Bvh<[u32; 3]>,
     vertices: Vec<Vertex>,
-    material: Option<Material>,
+    material: Material,
 }
 
+
 impl Mesh {
-    pub fn new(vertices: Vec<Vertex>, mut triangles: Vec<[u32; 3]>) -> Mesh {
+    pub fn new(vertices: Vec<Vertex>, mut triangles: Vec<[u32; 3]>, material: Material) -> Mesh {
         let triangle_aabb = |tri: &[u32; 3]| Aabb::from_points(tri.iter().map(|i| vertices[*i as usize].pos)).unwrap();
         Mesh {
             bvh: Bvh::new(triangles.as_mut_slice(), triangle_aabb, MAX_TRI_PER_NODE),
             vertices: vertices,
-            material: None,
+            material: material,
         }
     }
-
-    pub fn new_with_material(vertices: Vec<Vertex>, triangles: Vec<[u32; 3]>, material: Material) -> Mesh {
-        let mut mesh = Mesh::new(vertices, triangles);
-        mesh.material = Some(material);
-        mesh
-    }
-
 
 
     fn hit_triangles(&self, mut ray: Ray, triangles: &[[u32; 3]]) -> Option<HitRecord> {
@@ -62,7 +56,7 @@ impl Mesh {
                     dist: dist,
                     pos: pos,
                     norm: norm.normalized(),
-                    mat: self.material,
+                    mat: Some(self.material),
                 });
             }
         }
@@ -71,10 +65,15 @@ impl Mesh {
     }
 }
 
-
 impl WithAabb for Mesh {
     fn aabb(&self) -> Aabb {
         self.bvh.aabb()
+    }
+}
+
+impl WithMaterial for Mesh {
+    fn material(&self) -> &Material {
+        &self.material
     }
 }
 

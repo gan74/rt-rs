@@ -48,7 +48,7 @@ impl<T: Clone> Bvh<T> {
     }
 
     pub fn trace<F: Fn(Ray, &[T]) -> Option<HitRecord>>(&self, ray: Ray, hit_func: F) -> Option<HitRecord> {
-        Bvh::trace_node(&self.root, ray, &hit_func)
+        Self::trace_node(&self.root, ray, &hit_func)
     }
 
 
@@ -104,8 +104,8 @@ impl<T: Clone> BvhNode<T> {
 
         let next_axis = (axis + 1) % 3;
         let children = (
-            BvhNode::build(a, to_aabb, max_object_per_node, next_axis),
-            BvhNode::build(b, to_aabb, max_object_per_node, next_axis),
+            Self::build(a, to_aabb, max_object_per_node, next_axis),
+            Self::build(b, to_aabb, max_object_per_node, next_axis),
         );
 
         BvhNode {

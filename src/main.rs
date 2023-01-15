@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 extern crate gltf;
 extern crate rand;
 extern crate rayon;
@@ -23,7 +25,6 @@ mod bvh;
 mod vertex;
 mod surface;
 mod shapes;
-mod light;
 mod utils;
 
 use crate::scene::*;
@@ -31,12 +32,14 @@ use crate::ray::*;
 use crate::color::*;
 use crate::integrator::*;
 
-const SPP: usize = 8;
+
+const SPP: usize = 512;
 const MAX_BOUNCES: usize = 5;
+
 
 #[show_image::main]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let scene = import_scene("assets/buggy.gltf").expect("unable to import scene");
+    let scene = import_scene("assets/scene.gltf").expect("unable to import scene");
     let camera = scene.camera();
 
     let height = 512;
@@ -52,12 +55,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             Color::new(0.5, 0.7, 1.0) * v + (1.0 - v)
         };
 
+
+        let no_hit = |_: Ray| Color::from(0.0);
+
         let mut color = Color::from(0.0);
         for _ in 0..SPP {
             let ray = Integrator::generate_ray(&camera, i % width, i / width, width, height, &mut rng);
             color = color + Integrator::trace(&scene, ray, &no_hit, &mut rng, MAX_BOUNCES);
         }
 
+        assert!(color.r >= 0.0 && color.g >= 0.0 && color.b >= 0.0);
         (color / SPP as f32).to_srgb()
     }).collect::<Vec<_>>();
 

@@ -4,24 +4,71 @@ use crate::utils::*;
 
 use rand::prelude::*;
 
+use std::default::*;
+
+use core::f32::consts::FRAC_1_PI;
+
+
 #[derive(Debug, Clone, Copy)]
-pub enum Material {
-    Diffuse(Color),
-    Metal {
-        color: Color,
-        fuzz: f32,
+pub struct Material {
+    pub kind: MaterialKind,
+    pub color: Color,
+    pub emissive: Color,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum MaterialKind {
+    Diffuse,
+    Metal { fuzz: f32 },
+}
+
+pub struct MaterialScatter {
+    pub color: Color,
+    pub reflected: Vec3,
+}
+
+pub trait WithMaterial {
+    fn material(&self) -> &Material;
+}
+
+
+impl Material {
+    pub fn scatter<R: RngCore>(&self, in_dir: Vec3, norm: Vec3, rng: &mut R) -> MaterialScatter {
+        let reflected = match self.kind {
+            MaterialKind::Diffuse => random_in_hemisphere(norm, rng),
+            MaterialKind::Metal{fuzz} => in_dir.reflected(norm) + random_unit_vector(rng) * fuzz,
+        };
+
+        MaterialScatter {
+            color: self.color, 
+            reflected: reflected,
+        }
+    }
+
+    pub fn eval(&self, norm: Vec3, w_in: Vec3, w_out: Vec3) -> Color {
+        let intensity = match self.kind {
+            MaterialKind::Diffuse => {
+                let cos_out = norm.dot(w_out);
+                if cos_out < 0.0 || norm.dot(w_in) < 0.0 {
+                    0.0
+                } else {
+                    FRAC_1_PI * cos_out
+                }
+            },
+            _ => 0.0,
+        };
+
+        self.color * intensity
     }
 }
 
-impl Material {
-    pub fn scatter<R: RngCore>(&self, in_dir: Vec3, norm: Vec3, rng: &mut R) -> (Color, Vec3) {
-        match self {
-            Material::Diffuse(color) => (*color, random_in_hemisphere(norm, rng)),
-            Material::Metal { color, fuzz } => {
-                let reflected = in_dir.reflected(norm) + random_unit_vector(rng) * *fuzz;
-                (*color, reflected)
-            },
+
+impl Default for Material {
+    fn default() -> Self {
+        Material {
+            kind: MaterialKind::Diffuse,
+            color: Color::from(0.5),
+            emissive: Color::from(0.0),
         }
     }
 }
-

@@ -20,6 +20,10 @@ impl Color {
     pub fn to_srgb(&self) -> [u8; 3] {
         [to_srgb(self.r), to_srgb(self.g), to_srgb(self.b)]
     }
+
+    pub fn is_zero(&self) -> bool {
+        self.r <= 0.0 && self.g <= 0.0 && self.b <= 0.0
+    }
 }
 
 fn to_srgb(x: f32) -> u8 {
@@ -31,6 +35,12 @@ fn to_srgb(x: f32) -> u8 {
 impl From<f32> for Color {
     fn from(x: f32) -> Color {
         Color::new(x, x, x)
+    }
+}
+
+impl From<[f32; 3]> for Color {
+    fn from(rgb: [f32; 3]) -> Color {
+        Color::new(rgb[0], rgb[1], rgb[2])
     }
 }
 
@@ -91,5 +101,11 @@ impl Div<f32> for Color {
 
     fn div(self, o: f32) -> Color {
         self.div(Color::from(o))
+    }
+}
+
+impl AddAssign<Self> for Color {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = *self + rhs;
     }
 }
