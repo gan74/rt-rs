@@ -10,3 +10,6 @@ Cargo.lock
 **/*.rs.bk
 /assets/
 /result.png
+
+*.sublime-workspace
+
