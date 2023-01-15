@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use crate::vec::*;
+use crate::aabb::*;
 use crate::vertex::*;
 use crate::mesh::*;
 use crate::bvh::*;
@@ -14,21 +15,24 @@ use crate::material::*;
 use gltf;
 
 
-const MAX_MESH_PER_NODE: usize = 2;
+const MAX_OBJECT_PER_NODE: usize = 2;
 
 
 pub struct Scene {
-    meshes: Vec<Mesh>,
+    objects: Vec<Box<dyn SceneObject + Sync>>,
     camera: Camera,
 
     bvh: Bvh<u32>,
+}
+
+trait SceneObject : Hittable<Result = HitRecord> + WithAabb {
 }
 
 
 impl Scene {
     pub fn new() -> Scene {
         Scene {
-            meshes: Vec::new(),
+            objects: Vec::new(),
             camera: Camera::new(Transform::identity(), 60.0_f32.to_radians(), 1.0),
             bvh: Bvh::empty(),
         }
@@ -39,10 +43,14 @@ impl Scene {
     }
 
     fn build_bvh(&mut self) {
-        let mut mesh_indices = (0..self.meshes.len() as u32).collect::<Vec<_>>();
-        let mesh_aabb = |i: &u32| self.meshes[*i as usize].aabb();
-        self.bvh = Bvh::new(mesh_indices.as_mut_slice(), mesh_aabb, MAX_MESH_PER_NODE);
+        let mut indices = (0..self.objects.len() as u32).collect::<Vec<_>>();
+        let object_aabb = |i: &u32| self.objects[*i as usize].aabb();
+        self.bvh = Bvh::new(indices.as_mut_slice(), object_aabb, MAX_OBJECT_PER_NODE);
     }
+}
+
+
+impl<T> SceneObject for T where T: Hittable<Result = HitRecord> + WithAabb {
 }
 
 
@@ -50,11 +58,11 @@ impl Hittable for Scene {
     type Result = HitRecord;
 
     fn hit(&self, ray: Ray) -> Option<Self::Result> {
-        self.bvh.trace(ray, |mut r, meshes| {
+        self.bvh.trace(ray, |mut r, objects| {
             let mut hit_rec: Option<HitRecord> = None;
-            for i in meshes {
-                let mesh = &self.meshes[*i as usize];
-                if let Some(hit) = mesh.hit(r) {
+            for i in objects {
+                let obj = &self.objects[*i as usize];
+                if let Some(hit) = obj.hit(r) {
                     r = r.with_max(hit.dist);
                     hit_rec = Some(hit);
                 }
@@ -93,7 +101,7 @@ pub fn import_scene<P: AsRef<Path>>(path: P) -> gltf::Result<Scene> {
                             let indices = indices.into_u32().collect::<Vec<_>>();
                             let triangles = indices.as_slice().chunks(3).map(|sl| [sl[0], sl[1], sl[2]]).collect();
                             let material = import_material(primitive.material());
-                            scene.meshes.push(Mesh::new_with_material(vertices, triangles, material));
+                            scene.objects.push(Box::new(Mesh::new_with_material(vertices, triangles, material)));
                         },
 
                         _ => {
@@ -125,7 +133,7 @@ pub fn import_scene<P: AsRef<Path>>(path: P) -> gltf::Result<Scene> {
         println!("camera.forward  = {}", scene.camera.forward());
         println!("camera.right    = {}", scene.camera.right());
         println!("camera.up       = {}", scene.camera.up());
-        println!("{} meshes", scene.meshes.len());
+        println!("{} objects", scene.objects.len());
     }
 
     Ok(scene)

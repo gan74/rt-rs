@@ -26,7 +26,8 @@ use crate::scene::*;
 use crate::color::*;
 use crate::integrator::*;
 
-const SPP: usize = 4;
+const SPP: usize = 16;
+const MAX_BOUNCES: usize = 5;
 
 #[show_image::main]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -44,13 +45,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut color = Color::from(0.0);
         for _ in 0..SPP {
             let ray = Integrator::generate_ray(&camera, i % width, i / width, width, height, &mut rng);
-            color = color + Integrator::trace(&scene, ray, &mut rng, 5);
+            color = color + Integrator::trace(&scene, ray, &mut rng, MAX_BOUNCES);
         }
 
         (color / SPP as f32).to_srgb()
     }).collect::<Vec<_>>();
 
-    println!("Done in {:?}", Instant::now() - start);
+    let duration = Instant::now() - start;
+    println!("Done in {:?}", duration);
+    println!("{:.2} MS/s", ((width * height) as usize * SPP) as f64 / 1_000_000.0 / duration.as_secs_f64());
 
 
     {

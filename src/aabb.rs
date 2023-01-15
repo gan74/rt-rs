@@ -9,6 +9,11 @@ pub struct Aabb {
     max: Vec3
 }
 
+pub trait WithAabb {
+    fn aabb(&self) -> Aabb;
+}
+
+
 impl Aabb {
     pub fn empty(center: Vec3) -> Aabb {
         Aabb {

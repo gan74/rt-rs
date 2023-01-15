@@ -32,16 +32,12 @@ impl Mesh {
         mesh
     }
 
-    pub fn aabb(&self) -> Aabb {
-        self.bvh.aabb()
-    }
-
 
 
     fn hit_triangles(&self, mut ray: Ray, triangles: &[[u32; 3]]) -> Option<HitRecord> {
         let mut hit: Option<HitRecord> = None;
 
-        for index in triangles.iter() {
+        for index in triangles {
             let tri =  [
                 self.vertices[index[0] as usize].pos,
                 self.vertices[index[1] as usize].pos,
@@ -75,6 +71,12 @@ impl Mesh {
     }
 }
 
+
+impl WithAabb for Mesh {
+    fn aabb(&self) -> Aabb {
+        self.bvh.aabb()
+    }
+}
 
 impl Hittable for Mesh {
     type Result = HitRecord;
