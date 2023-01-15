@@ -20,7 +20,7 @@ impl Mesh {
     pub fn new(vertices: Vec<Vertex>, mut triangles: Vec<[u32; 3]>) -> Mesh {
         let triangle_aabb = |tri: &[u32; 3]| Aabb::from_points(tri.iter().map(|i| vertices[*i as usize].pos)).unwrap();
         Mesh {
-            bvh: Bvh::<[u32; 3]>::new(triangles.as_mut_slice(), &triangle_aabb, MAX_TRI_PER_NODE),
+            bvh: Bvh::new(triangles.as_mut_slice(), triangle_aabb, MAX_TRI_PER_NODE),
             vertices: vertices,
             material: None,
         }
@@ -80,7 +80,7 @@ impl Hittable for Mesh {
     type Result = HitRecord;
 
     fn hit(&self, ray: Ray) -> Option<Self::Result> {
-        self.bvh.trace(ray, &|r, tris| self.hit_triangles(r, tris))
+        self.bvh.trace(ray, |r, tris| self.hit_triangles(r, tris))
     }
 }
 

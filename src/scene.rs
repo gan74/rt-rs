@@ -3,6 +3,7 @@ use std::path::Path;
 use crate::vec::*;
 use crate::vertex::*;
 use crate::mesh::*;
+use crate::bvh::*;
 use crate::transform::*;
 use crate::ray::*;
 use crate::hit::*;
@@ -12,39 +13,56 @@ use crate::material::*;
 
 use gltf;
 
+
+const MAX_MESH_PER_NODE: usize = 2;
+
+
 pub struct Scene {
     meshes: Vec<Mesh>,
     camera: Camera,
+
+    bvh: Bvh<u32>,
 }
+
 
 impl Scene {
     pub fn new() -> Scene {
         Scene {
             meshes: Vec::new(),
             camera: Camera::new(Transform::identity(), 60.0_f32.to_radians(), 1.0),
+            bvh: Bvh::empty(),
         }
     }
 
     pub fn camera(&self) -> Camera {
         self.camera
     }
+
+    fn build_bvh(&mut self) {
+        let mut mesh_indices = (0..self.meshes.len() as u32).collect::<Vec<_>>();
+        let mesh_aabb = |i: &u32| self.meshes[*i as usize].aabb();
+        self.bvh = Bvh::new(mesh_indices.as_mut_slice(), mesh_aabb, MAX_MESH_PER_NODE);
+    }
 }
+
 
 impl Hittable for Scene {
     type Result = HitRecord;
 
-    fn hit(&self, mut ray: Ray) -> Option<Self::Result> {
-        let mut hit_rec: Option<HitRecord> = None;
-        for mesh in self.meshes.iter() {
-            if let Some(hit) = mesh.hit(ray) {
-                ray = ray.with_max(hit.dist);
-                hit_rec = Some(hit);
+    fn hit(&self, ray: Ray) -> Option<Self::Result> {
+        self.bvh.trace(ray, |mut r, meshes| {
+            let mut hit_rec: Option<HitRecord> = None;
+            for i in meshes {
+                let mesh = &self.meshes[*i as usize];
+                if let Some(hit) = mesh.hit(r) {
+                    r = r.with_max(hit.dist);
+                    hit_rec = Some(hit);
+                }
             }
-        }
-        hit_rec
+            hit_rec
+        })
     }
 }
-
 
 
 
@@ -100,6 +118,7 @@ pub fn import_scene<P: AsRef<Path>>(path: P) -> gltf::Result<Scene> {
         nodes = children;
     }
 
+    scene.build_bvh();
 
     {
         println!("camera.position = {}", scene.camera.position());

@@ -1,6 +1,7 @@
 
 use crate::aabb::*;
 use crate::ray::*;
+use crate::vec::*;
 use crate::hit::*;
 
 pub struct Bvh<T> {
@@ -19,9 +20,18 @@ enum BvhContent<T> {
 
 
 impl<T: Clone> Bvh<T> {
-    pub fn new<F: Fn(&T) -> Aabb>(objects: &mut [T], to_aabb: &F, max_object_per_node: usize) -> Bvh<T> {
+    pub fn new<F: Fn(&T) -> Aabb>(objects: &mut [T], to_aabb: F, max_object_per_node: usize) -> Bvh<T> {
         Bvh {
-            root: BvhNode::<T>::build(objects, to_aabb, max_object_per_node, 0)
+            root: BvhNode::build(objects, &to_aabb, max_object_per_node, 0)
+        }
+    }
+
+    pub fn empty() -> Bvh<T> {
+        Bvh {
+            root: BvhNode {
+                aabb: Aabb::empty(Vec3::zero()),
+                content: BvhContent::Leaf(Vec::new())
+            },
         }
     }
 
@@ -29,8 +39,8 @@ impl<T: Clone> Bvh<T> {
         self.root.aabb
     }
 
-    pub fn trace<F: Fn(Ray, &[T]) -> Option<HitRecord>>(&self, ray: Ray, hit_func: &F) -> Option<HitRecord> {
-        Bvh::<T>::trace_node(&self.root, ray, hit_func)
+    pub fn trace<F: Fn(Ray, &[T]) -> Option<HitRecord>>(&self, ray: Ray, hit_func: F) -> Option<HitRecord> {
+        Bvh::trace_node(&self.root, ray, &hit_func)
     }
 
 
@@ -66,7 +76,7 @@ impl<T: Clone> Bvh<T> {
 
 impl<T: Clone> BvhNode<T> {
     fn build<F: Fn(&T) -> Aabb>(objects: &mut [T], to_aabb: &F, max_object_per_node: usize, axis: usize) -> BvhNode<T> {
-        if objects.len() < max_object_per_node {
+        if objects.len() <= max_object_per_node {
             return BvhNode {
                 aabb: objects.iter().map(|o| to_aabb(o)).reduce(|acc, e| acc.merged(e)).unwrap(),
                 content: BvhContent::Leaf(Vec::from(objects)),
