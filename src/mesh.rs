@@ -1,27 +1,26 @@
 
 use crate::vec::*;
+use crate::vertex::*;
 use crate::aabb::*;
 use crate::ray::*;
 use crate::hit::*;
+use crate::bvh::*;
 use crate::material::*;
 
-#[derive(Debug, Clone, Copy)]
-pub struct Vertex {
-    pub pos: Vec3,
-    pub norm: Vec3,
-}
+
+type Node = BvhNode<[u32; 3]>;
 
 pub struct Mesh {
-    bvh: BvhNode,
+    bvh: Node,
     vertices: Vec<Vertex>,
     material: Option<Material>,
 }
 
 impl Mesh {
     pub fn new(vertices: Vec<Vertex>, triangles: Vec<[u32; 3]>) -> Mesh {
+        let triangle_aabb = |tri: &[u32; 3]| Aabb::from_points(tri.iter().map(|i| vertices[*i as usize].pos)).unwrap();
         Mesh {
-            //triangles: triangles.clone(),
-            bvh: BvhNode::new(&vertices, triangles),
+            bvh: Node::new(triangles, &triangle_aabb),
             vertices: vertices,
             material: None,
         }
@@ -75,14 +74,14 @@ impl Mesh {
         hit
     }
 
-    fn hit_bvh_node(&self, node: &BvhNode, mut ray: Ray) -> Option<HitRecord> {
+    fn hit_bvh_node(&self, node: &Node, mut ray: Ray) -> Option<HitRecord> {
         if node.aabb.hit(ray).is_none() {
             return None;
         }
         match &node.content {
             BvhContent::Leaf(tris) => self.hit_triangles(&tris, ray),
             BvhContent::Node(children) => {
-                let dist_sq = |c: &BvhNode| c.aabb.center().distance2(ray.orig);
+                let dist_sq = |c: &Node| c.aabb.center().distance2(ray.orig);
 
                 let children = if dist_sq(&children.0) < dist_sq(&children.1) {
                     [&children.0, &children.1]
@@ -112,51 +111,6 @@ impl Hittable for Mesh {
     }
 }
 
-
-struct BvhNode {
-    aabb: Aabb,
-    content: BvhContent,
-}
-
-enum BvhContent {
-    Leaf(Vec<[u32; 3]>),
-    Node(Box<(BvhNode, BvhNode)>),
-}
-
-impl BvhNode {
-    fn new(vertices: &[Vertex], mut triangles: Vec<[u32; 3]>) -> BvhNode {
-        BvhNode::build(vertices, &mut triangles, 0)
-    }
-
-    fn build(vertices: &[Vertex], triangles: &mut [[u32; 3]], axis: usize) -> BvhNode {
-        if triangles.len() < 32 {
-            return BvhNode {
-                aabb: Aabb::from_points(triangles.iter().flatten().map(|i| vertices[*i as usize].pos)).unwrap(),
-                content: BvhContent::Leaf(Vec::from(triangles)),
-            };
-        }
-
-        let on_axis = |tri: &[u32; 3]| {
-            vertices[tri[0] as usize].pos[axis] +
-            vertices[tri[1] as usize].pos[axis] +
-            vertices[tri[2] as usize].pos[axis]
-        };
-        triangles.sort_by(|a, b| on_axis(a).partial_cmp(&on_axis(b)).unwrap());
-
-        let (a, b) = triangles.split_at_mut(triangles.len() / 2);
-
-        let next_axis = (axis + 1) % 3;
-        let children = (
-            BvhNode::build(vertices, a, next_axis),
-            BvhNode::build(vertices, b, next_axis),
-        );
-
-        BvhNode {
-            aabb: children.0.aabb.merged(children.1.aabb),
-            content: BvhContent::Node(Box::new(children)),
-        }
-    }
-}
 
 impl Hittable for [Vec3; 3] {
     type Result = [f32; 3];

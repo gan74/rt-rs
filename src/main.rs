@@ -19,6 +19,8 @@ mod scene;
 mod color;
 mod material;
 mod integrator;
+mod bvh;
+mod vertex;
 
 use crate::scene::*;
 use crate::color::*;

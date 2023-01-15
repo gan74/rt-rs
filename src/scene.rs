@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use crate::vec::*;
+use crate::vertex::*;
 use crate::mesh::*;
 use crate::transform::*;
 use crate::ray::*;
