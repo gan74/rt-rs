@@ -11,7 +11,7 @@ pub struct Integrator {
 }
 
 impl Integrator {
-	pub fn generate_ray(camera: &Camera, x: u32, y: u32, width: u32, height: u32, rng: &mut ThreadRng) -> Ray {
+	pub fn generate_ray<R: RngCore>(camera: &Camera, x: u32, y: u32, width: u32, height: u32, rng: &mut R) -> Ray {
         let x = x as f32;
         let y = y as f32;
         let width = width as f32;
@@ -26,7 +26,7 @@ impl Integrator {
         camera.generate_ray(u, 1.0 - v)
     }
 
-    pub fn trace<T: Hittable<Result = HitRecord>>(scene: &T, ray: Ray, rng: &mut ThreadRng, max_rays: usize) -> Color {
+    pub fn trace<T: Hittable<Result = HitRecord>, R: RngCore>(scene: &T, ray: Ray, rng: &mut R, max_rays: usize) -> Color {
         if max_rays == 0 {
             return Color::from(0.0);
         }

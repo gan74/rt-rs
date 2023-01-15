@@ -13,7 +13,7 @@ pub enum Material {
 }
 
 impl Material {
-    pub fn scatter(&self, in_dir: Vec3, norm: Vec3, rng: &mut ThreadRng) -> (Color, Vec3) {
+    pub fn scatter<R: RngCore>(&self, in_dir: Vec3, norm: Vec3, rng: &mut R) -> (Color, Vec3) {
         match self {
             Material::Diffuse(color) => (*color, random_in_hemisphere(norm, rng)),
             Material::Metal { color, fuzz } => {
@@ -27,7 +27,7 @@ impl Material {
 
 
 
-fn random_unit_vector(rng: &mut ThreadRng) -> Vec3 {
+fn random_unit_vector<R: RngCore>(rng: &mut R) -> Vec3 {
     loop {
         let v = Vec3::new(
             rng.gen::<f32>() * 2.0 - 1.0,
@@ -41,7 +41,7 @@ fn random_unit_vector(rng: &mut ThreadRng) -> Vec3 {
     }
 }
 
-fn random_in_hemisphere(norm: Vec3, rng: &mut ThreadRng) -> Vec3 {
+fn random_in_hemisphere<R: RngCore>(norm: Vec3, rng: &mut R) -> Vec3 {
     let v = random_unit_vector(rng);
     if v.dot(norm) < 0.0 {
         -v
