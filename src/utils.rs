@@ -26,18 +26,27 @@ pub fn random_in_hemisphere<R: RngCore>(norm: Vec3, rng: &mut R) -> Vec3 {
     }
 }
 
-pub fn main_axis(v: Vec3) -> usize {
-    let (mut axis, mut value) = (0, v.x.abs());
-    for i in 1..3 {
-        if v[i].abs() > value {
-            axis = if v[i] < 0.0 {
-                i + 3
-            } else {
-                i
-            };
-            value = v[i].abs();
+pub fn quadrant(v: Vec3) -> usize {
+    let mut q = 0;
+    for i in 0..3 {
+        if v[i] < 0.0 {
+            q = q | (1 << i);
         }
     }
 
-    axis
+    q
+}
+
+pub fn quadrant_dir(q: usize) -> Vec3 {
+    let sign = |i| {
+        if (q & ((1 << i) as usize)) != 0 {
+            -1.0
+        } else {
+            1.0
+        }
+    };
+
+    let v = Vec3::new(sign(0), sign(1), sign(2));
+    debug_assert!(quadrant(v) == q);
+    v
 }

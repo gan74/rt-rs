@@ -21,6 +21,7 @@ enum BvhContent<T> {
 
 impl<T: Clone> Bvh<T> {
     pub fn new<F: Fn(&T) -> Aabb>(objects: &mut [T], to_aabb: F, max_object_per_node: usize) -> Bvh<T> {
+        debug_assert!(!objects.is_empty());
         Bvh {
             root: BvhNode::build(objects, &to_aabb, max_object_per_node, 0)
         }
@@ -32,6 +33,13 @@ impl<T: Clone> Bvh<T> {
                 aabb: Aabb::empty(Vec3::zero()),
                 content: BvhContent::Leaf(Vec::new())
             },
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        match &self.root.content {
+            BvhContent::Leaf(objects) => objects.is_empty(),
+            _ => false,
         }
     }
 
@@ -76,6 +84,8 @@ impl<T: Clone> Bvh<T> {
 
 impl<T: Clone> BvhNode<T> {
     fn build<F: Fn(&T) -> Aabb>(objects: &mut [T], to_aabb: &F, max_object_per_node: usize, axis: usize) -> BvhNode<T> {
+        debug_assert!(!objects.is_empty());
+
         if objects.len() <= max_object_per_node {
             return BvhNode {
                 aabb: objects.iter().map(|o| to_aabb(o)).reduce(|acc, e| acc.merged(e)).unwrap(),
@@ -89,6 +99,8 @@ impl<T: Clone> BvhNode<T> {
         objects.sort_by(|a, b| on_axis(a).partial_cmp(&on_axis(b)).unwrap());
 
         let (a, b) = objects.split_at_mut(objects.len() / 2);
+        debug_assert!(!a.is_empty());
+        debug_assert!(!b.is_empty());
 
         let next_axis = (axis + 1) % 3;
         let children = (
