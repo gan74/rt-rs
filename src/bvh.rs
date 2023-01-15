@@ -1,24 +1,72 @@
 
 use crate::aabb::*;
+use crate::ray::*;
+use crate::hit::*;
 
-
-pub struct BvhNode<T> {
-    pub aabb: Aabb,
-    pub content: BvhContent<T>,
+pub struct Bvh<T> {
+    root: BvhNode<T>,
 }
 
-pub enum BvhContent<T> {
+struct BvhNode<T> {
+    aabb: Aabb,
+    content: BvhContent<T>,
+}
+
+enum BvhContent<T> {
     Leaf(Vec<T>),
     Node(Box<(BvhNode<T>, BvhNode<T>)>),
 }
 
-impl<T: Clone> BvhNode<T> {
-    pub fn new<F: Fn(&T) -> Aabb>(mut objects: Vec<T>, to_aabb: &F) -> BvhNode<T> {
-        BvhNode::<T>::build(&mut objects, to_aabb, 0)
+
+impl<T: Clone> Bvh<T> {
+    pub fn new<F: Fn(&T) -> Aabb>(objects: &mut [T], to_aabb: &F, max_object_per_node: usize) -> Bvh<T> {
+        Bvh {
+            root: BvhNode::<T>::build(objects, to_aabb, max_object_per_node, 0)
+        }
     }
 
-    fn build<F: Fn(&T) -> Aabb>(objects: &mut [T], to_aabb: &F, axis: usize) -> BvhNode<T> {
-        if objects.len() < 8 {
+    pub fn aabb(&self) -> Aabb {
+        self.root.aabb
+    }
+
+    pub fn trace<F: Fn(Ray, &[T]) -> Option<HitRecord>>(&self, ray: Ray, hit_func: &F) -> Option<HitRecord> {
+        Bvh::<T>::trace_node(&self.root, ray, hit_func)
+    }
+
+
+
+    fn trace_node<F: Fn(Ray, &[T]) -> Option<HitRecord>>(node: &BvhNode<T>, mut ray: Ray, hit_func: &F) -> Option<HitRecord> {
+        if node.aabb.hit(ray).is_none() {
+            return None;
+        }
+        match &node.content {
+            BvhContent::Leaf(objects) => hit_func(ray, objects),
+            BvhContent::Node(children) => {
+                let dist_sq = |c: &BvhNode<T>| c.aabb.center().distance2(ray.orig);
+
+                let children = if dist_sq(&children.0) < dist_sq(&children.1) {
+                    [&children.0, &children.1]
+                } else {
+                    [&children.1, &children.0]
+                };
+
+                let mut hit_rec: Option<HitRecord> = None;
+                for child in children.iter() {
+                    if let Some(hit) = Bvh::<T>::trace_node(child, ray, hit_func) {
+                        ray = ray.with_max(hit.dist);
+                        hit_rec = Some(hit);
+                    }
+                }
+                hit_rec
+            },
+        }
+    }
+}
+
+
+impl<T: Clone> BvhNode<T> {
+    fn build<F: Fn(&T) -> Aabb>(objects: &mut [T], to_aabb: &F, max_object_per_node: usize, axis: usize) -> BvhNode<T> {
+        if objects.len() < max_object_per_node {
             return BvhNode {
                 aabb: objects.iter().map(|o| to_aabb(o)).reduce(|acc, e| acc.merged(e)).unwrap(),
                 content: BvhContent::Leaf(Vec::from(objects)),
@@ -34,8 +82,8 @@ impl<T: Clone> BvhNode<T> {
 
         let next_axis = (axis + 1) % 3;
         let children = (
-            BvhNode::<T>::build(a, to_aabb, next_axis),
-            BvhNode::<T>::build(b, to_aabb, next_axis),
+            BvhNode::<T>::build(a, to_aabb, max_object_per_node, next_axis),
+            BvhNode::<T>::build(b, to_aabb, max_object_per_node, next_axis),
         );
 
         BvhNode {

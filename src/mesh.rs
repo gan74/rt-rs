@@ -8,19 +8,19 @@ use crate::bvh::*;
 use crate::material::*;
 
 
-type Node = BvhNode<[u32; 3]>;
+const MAX_TRI_PER_NODE: usize = 8;
 
 pub struct Mesh {
-    bvh: Node,
+    bvh: Bvh<[u32; 3]>,
     vertices: Vec<Vertex>,
     material: Option<Material>,
 }
 
 impl Mesh {
-    pub fn new(vertices: Vec<Vertex>, triangles: Vec<[u32; 3]>) -> Mesh {
+    pub fn new(vertices: Vec<Vertex>, mut triangles: Vec<[u32; 3]>) -> Mesh {
         let triangle_aabb = |tri: &[u32; 3]| Aabb::from_points(tri.iter().map(|i| vertices[*i as usize].pos)).unwrap();
         Mesh {
-            bvh: Node::new(triangles, &triangle_aabb),
+            bvh: Bvh::<[u32; 3]>::new(triangles.as_mut_slice(), &triangle_aabb, MAX_TRI_PER_NODE),
             vertices: vertices,
             material: None,
         }
@@ -33,12 +33,12 @@ impl Mesh {
     }
 
     pub fn aabb(&self) -> Aabb {
-        self.bvh.aabb
+        self.bvh.aabb()
     }
 
 
 
-    fn hit_triangles(&self, triangles: &[[u32; 3]], mut ray: Ray) -> Option<HitRecord> {
+    fn hit_triangles(&self, mut ray: Ray, triangles: &[[u32; 3]]) -> Option<HitRecord> {
         let mut hit: Option<HitRecord> = None;
 
         for index in triangles.iter() {
@@ -73,33 +73,6 @@ impl Mesh {
 
         hit
     }
-
-    fn hit_bvh_node(&self, node: &Node, mut ray: Ray) -> Option<HitRecord> {
-        if node.aabb.hit(ray).is_none() {
-            return None;
-        }
-        match &node.content {
-            BvhContent::Leaf(tris) => self.hit_triangles(&tris, ray),
-            BvhContent::Node(children) => {
-                let dist_sq = |c: &Node| c.aabb.center().distance2(ray.orig);
-
-                let children = if dist_sq(&children.0) < dist_sq(&children.1) {
-                    [&children.0, &children.1]
-                } else {
-                    [&children.1, &children.0]
-                };
-
-                let mut hit_rec: Option<HitRecord> = None;
-                for child in children.iter() {
-                    if let Some(hit) = self.hit_bvh_node(child, ray) {
-                        ray = ray.with_max(hit.dist);
-                        hit_rec = Some(hit);
-                    }
-                }
-                hit_rec
-            },
-        }
-    }
 }
 
 
@@ -107,7 +80,7 @@ impl Hittable for Mesh {
     type Result = HitRecord;
 
     fn hit(&self, ray: Ray) -> Option<Self::Result> {
-        self.hit_bvh_node(&self.bvh, ray)
+        self.bvh.trace(ray, &|r, tris| self.hit_triangles(r, tris))
     }
 }
 
