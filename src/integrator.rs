@@ -26,7 +26,7 @@ impl Integrator {
         camera.generate_ray(u, 1.0 - v)
     }
 
-    pub fn trace<T: Hittable<Result = HitRecord>, R: RngCore>(scene: &T, ray: Ray, rng: &mut R, max_rays: usize) -> Color {
+    pub fn trace<T: Hittable<Result = HitRecord>, R: RngCore, F: Fn(Ray) -> Color>(scene: &T, ray: Ray, no_hit: &F, rng: &mut R, max_rays: usize) -> Color {
         if max_rays == 0 {
             return Color::from(0.0);
         }
@@ -37,13 +37,10 @@ impl Integrator {
             Some(hit) => {
                 let mat = hit.mat.unwrap_or(default_mat);
                 let (color, new_dir) = mat.scatter(ray.dir, hit.norm, rng);
-                Self::trace(scene, Ray::new_with_epsilon(hit.pos, new_dir), rng, max_rays - 1) * color
+                Self::trace(scene, Ray::new_with_epsilon(hit.pos, new_dir), no_hit, rng, max_rays - 1) * color
             },
 
-            None => {
-                let v = (ray.dir.y + 1.0) * 0.5;
-                Color::new(0.5, 0.7, 1.0) * v + (1.0 - v)
-            },
+            None => no_hit(ray),
         }
     }
 }

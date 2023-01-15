@@ -21,12 +21,17 @@ mod material;
 mod integrator;
 mod bvh;
 mod vertex;
+mod surface;
+mod shapes;
+mod light;
+mod utils;
 
 use crate::scene::*;
+use crate::ray::*;
 use crate::color::*;
 use crate::integrator::*;
 
-const SPP: usize = 16;
+const SPP: usize = 8;
 const MAX_BOUNCES: usize = 5;
 
 #[show_image::main]
@@ -42,10 +47,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let data = (0..width * height).into_par_iter().map(|i| {
         let mut rng = rand::thread_rng();
 
+        let no_hit = |ray: Ray| {
+            let v = (ray.dir.y + 1.0) * 0.5;
+            Color::new(0.5, 0.7, 1.0) * v + (1.0 - v)
+        };
+
         let mut color = Color::from(0.0);
         for _ in 0..SPP {
             let ray = Integrator::generate_ray(&camera, i % width, i / width, width, height, &mut rng);
-            color = color + Integrator::trace(&scene, ray, &mut rng, MAX_BOUNCES);
+            color = color + Integrator::trace(&scene, ray, &no_hit, &mut rng, MAX_BOUNCES);
         }
 
         (color / SPP as f32).to_srgb()

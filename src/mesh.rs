@@ -69,6 +69,17 @@ impl Mesh {
 
         hit
     }
+
+    // Don't use for shading
+    fn triangle_geometric_normal(&self, index: &[u32; 3]) -> Vec3 {
+        let tri =  [
+            self.vertices[index[0] as usize].norm,
+            self.vertices[index[1] as usize].norm,
+            self.vertices[index[2] as usize].norm,
+        ];
+
+        (tri[0] + tri[1] + tri[2]).normalized()
+    }
 }
 
 

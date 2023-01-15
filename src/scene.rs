@@ -11,6 +11,8 @@ use crate::hit::*;
 use crate::camera::*;
 use crate::color::*;
 use crate::material::*;
+use crate::surface::*;
+use crate::light::*;
 
 use gltf;
 
@@ -20,9 +22,11 @@ const MAX_OBJECT_PER_NODE: usize = 2;
 
 pub struct Scene {
     objects: Vec<Box<dyn SceneObject + Sync>>,
-    camera: Camera,
-
     bvh: Bvh<u32>,
+
+    lights: SurfaceGroup<Light>,
+
+    camera: Camera,
 }
 
 trait SceneObject : Hittable<Result = HitRecord> + WithAabb {
@@ -33,8 +37,11 @@ impl Scene {
     pub fn new() -> Scene {
         Scene {
             objects: Vec::new(),
-            camera: Camera::new(Transform::identity(), 60.0_f32.to_radians(), 1.0),
             bvh: Bvh::empty(),
+
+            lights: SurfaceGroup::empty(),
+
+            camera: Camera::new(Transform::identity(), 60.0_f32.to_radians(), 1.0),
         }
     }
 
