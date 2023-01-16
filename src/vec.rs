@@ -1,6 +1,8 @@
-
 use std::ops::*;
 use std::fmt;
+
+use crate::color::*;
+
 
 #[derive(Default, Debug, Clone, Copy)]
 pub struct Vec3 {
@@ -96,10 +98,15 @@ impl From<f32> for Vec3 {
     }
 }
 
-
 impl From<[f32; 3]> for Vec3 {
     fn from(xyz: [f32; 3]) -> Vec3 {
         Vec3::new(xyz[0], xyz[1], xyz[2])
+    }
+}
+
+impl From<Color> for Vec3 {
+    fn from(col: Color) -> Vec3 {
+        Vec3::new(col.r, col.g, col.b)
     }
 }
 

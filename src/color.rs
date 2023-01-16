@@ -7,6 +7,13 @@ pub struct Color {
     pub b: f32,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct SRgbColor {
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
+}
+
 
 impl Color {
     pub fn new(r: f32, g: f32, b: f32) -> Color {
@@ -17,12 +24,16 @@ impl Color {
         }
     }
 
-    pub fn to_srgb(&self) -> [u8; 3] {
-        [to_srgb(self.r), to_srgb(self.g), to_srgb(self.b)]
-    }
-
     pub fn is_zero(&self) -> bool {
         self.r <= 0.0 && self.g <= 0.0 && self.b <= 0.0
+    }
+
+    pub fn to_srgb(&self) -> SRgbColor {
+        SRgbColor {
+            r: to_srgb(self.r), 
+            g: to_srgb(self.g), 
+            b: to_srgb(self.b),
+        }
     }
 }
 
