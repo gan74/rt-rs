@@ -6,6 +6,7 @@ extern crate rayon;
 extern crate show_image;
 
 use std::time::Instant;
+use std::path::Path;
 
 use show_image::{ImageView, ImageInfo, WindowOptions, create_window, event};
 use rayon::prelude::*;
@@ -33,15 +34,17 @@ use crate::color::*;
 use crate::integrator::*;
 
 
-const SPP: usize = 16;
+const SPP: usize = 256;
 const MAX_BOUNCES: usize = 4;
+const SCENE_FILE: &str = "assets/cornel.gltf";
 
 
 #[show_image::main]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let start = Instant::now();
 
-    let scene = import_scene("assets/cornel.gltf").expect("unable to import scene");
+    let scene_path = Path::new(SCENE_FILE);
+    let scene = import_scene(scene_path).expect("unable to import scene");
     let camera = scene.camera();
 
     println!("Loaded in {:?}", (Instant::now() - start));
@@ -85,11 +88,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             pixel_data.push(rgb[2]);
         }
 
+        let scene_name = String::from(Path::new(scene_path.file_name().unwrap()).file_stem().unwrap().to_str().unwrap());
+        let scene_name = format!("{} ({}spp)", scene_name, SPP);
+
         let options = WindowOptions::default()
             .set_size([width, height])
-            .set_resizable(false);
-        let window = create_window("Result", options).unwrap();
-        window.set_image("result", ImageView::new(ImageInfo::rgb8(width, height), pixel_data.as_slice())).unwrap();
+            .set_resizable(false)
+            .set_default_controls(false);
+
+        let window = create_window(scene_name.clone(), options).unwrap();
+        window.set_image(scene_name, ImageView::new(ImageInfo::rgb8(width, height), pixel_data.as_slice())).unwrap();
 
         for event in window.event_channel()? {
             if let event::WindowEvent::KeyboardInput(event) = event {

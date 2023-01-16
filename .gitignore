@@ -2,10 +2,10 @@
 
 
 Cargo.lock
-result.png
 
 
 *.sublime-workspace
+*.png
 
 
 assets/*
