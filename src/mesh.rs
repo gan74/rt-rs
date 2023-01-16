@@ -44,6 +44,14 @@ impl Mesh {
         mesh
     }
 
+    pub fn aabb(&self) -> Aabb {
+        self.bvh.aabb()
+    }
+    
+    pub fn material(&self) -> &Material {
+        &self.material
+    }
+
 
     fn build_surface(&mut self) {
         let mut triangle_areas = self.triangles.iter().map(|index| {
@@ -154,17 +162,6 @@ impl Surface for Mesh {
     }
 }
 
-impl WithAabb for Mesh {
-    fn aabb(&self) -> Aabb {
-        self.bvh.aabb()
-    }
-}
-
-impl WithMaterial for Mesh {
-    fn material(&self) -> &Material {
-        &self.material
-    }
-}
 
 impl<'mesh> Hittable for &'mesh Mesh {
     type Result = HitRecord<'mesh>;

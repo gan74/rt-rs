@@ -11,24 +11,15 @@ use core::f32::consts::FRAC_1_PI;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Material {
-    pub kind: MaterialKind,
+    pub roughness: f32,
+    pub metallic: f32,
     pub color: Color,
     pub emissive: Color,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum MaterialKind {
-    Diffuse,
-    Metal { fuzz: f32 },
 }
 
 pub struct MaterialScatter {
     pub color: Color,
     pub reflected: Vec3,
-}
-
-pub trait WithMaterial {
-    fn material(&self) -> &Material;
 }
 
 
@@ -37,32 +28,26 @@ impl Material {
         !self.emissive.is_zero()
     }
 
-    pub fn scatter<R: RngCore>(&self, in_dir: Vec3, norm: Vec3, rng: &mut R) -> MaterialScatter {
-        let reflected = match self.kind {
-            MaterialKind::Diffuse => random_in_hemisphere(norm, rng),
-            MaterialKind::Metal{fuzz} => in_dir.reflected(norm) + random_unit_vector(rng) * fuzz,
-        };
+    pub fn pdf(&self, norm: Vec3, in_dir: Vec3, out_dir: Vec3) -> f32 {
+        let cos_out = norm.dot(out_dir);
+        let cos_in = norm.dot(in_dir);
+        if cos_out < 0.0 || cos_in < 0.0 { 
+            return 0.0;
+        }
+        FRAC_1_PI * cos_out
+    }
 
+    pub fn scatter<R: RngCore>(&self, _in_dir: Vec3, norm: Vec3, rng: &mut R) -> MaterialScatter {
+        // TODO: importance sampling
+        let refl = random_in_hemisphere(norm, rng);
         MaterialScatter {
-            color: self.color, 
-            reflected: reflected,
+            color: self.color,
+            reflected: refl,
         }
     }
 
-    pub fn eval(&self, norm: Vec3, w_in: Vec3, w_out: Vec3) -> Color {
-        let refl = match self.kind {
-            MaterialKind::Diffuse => {
-                let cos_out = norm.dot(w_out);
-                if cos_out < 0.0 || norm.dot(w_in) < 0.0 {
-                    0.0
-                } else {
-                    FRAC_1_PI * cos_out
-                }
-            },
-            _ => 0.0,
-        };
-
-        self.color * refl
+    pub fn eval(&self, norm: Vec3, in_dir: Vec3, out_dir: Vec3) -> Color {
+        self.color * self.pdf(norm, in_dir, out_dir)
     }
 }
 
@@ -70,8 +55,9 @@ impl Material {
 impl Default for Material {
     fn default() -> Self {
         Material {
-            kind: MaterialKind::Diffuse,
-            color: Color::from(0.5),
+            roughness: 0.5,
+            metallic: 0.0,
+            color: Color::from(0.75),
             emissive: Color::from(0.0),
         }
     }

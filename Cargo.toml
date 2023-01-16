@@ -9,7 +9,7 @@ resolver = "2"
 opt-level = 3
 
 [dependencies]
-gltf = { version = "0.15", features = ["KHR_lights_punctual"] }
+gltf = { version = "1.0", features = ["KHR_materials_transmission"] }
 rand = "*"
 rayon = "*"
 

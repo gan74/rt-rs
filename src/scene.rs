@@ -1,7 +1,6 @@
 use std::path::Path;
 
 use crate::vec::*;
-use crate::aabb::*;
 use crate::vertex::*;
 use crate::mesh::*;
 use crate::bvh::*;
@@ -202,14 +201,12 @@ fn import_material(mat: gltf::Material) -> Material {
     let to_color = |col: &[f32]| Color::new(col[0], col[1], col[2]);
 
     let pbr = mat.pbr_metallic_roughness();
-    let kind = if pbr.metallic_factor() > 0.5 {
-        MaterialKind::Metal{fuzz: pbr.roughness_factor()}
-    } else {
-        MaterialKind::Diffuse
-    };
+    //let transmission = mat.transmission().map(|tr| tr.transmission_factor()).unwrap_or(0.0);
 
+println!("{:?}", to_color(&mat.emissive_factor()[0..3]));
     Material {
-        kind: kind,
+        roughness: pbr.roughness_factor(),
+        metallic: pbr.metallic_factor(),
         color: to_color(&pbr.base_color_factor()[0..3]),
         emissive: to_color(&mat.emissive_factor()[0..3]),
     }

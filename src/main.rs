@@ -42,7 +42,7 @@ use crate::image::*;
 
 
 
-const SPP: usize = 16;
+const SPP: usize = 64;
 const MAX_BOUNCES: usize = 4;
 const SCENE_FILE: &str = "assets/cornel.gltf";
 

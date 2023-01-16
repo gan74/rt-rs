@@ -41,7 +41,7 @@ impl Integrator {
 
                 // Light contrib
                 {
-                    acc += Self::light_contrib(scene, ray, &hit, rng);
+                    //acc += Self::light_contrib(scene, ray, &hit, rng);
                 }
 
                 // Material contrib
