@@ -184,15 +184,18 @@ pub fn import_scene<P: AsRef<Path>>(path: P) -> gltf::Result<Scene> {
         nodes = children;
     }
 
+    let scene = builder.build();
+
     {
-        println!("camera.position = {}", builder.camera.position());
-        println!("camera.forward  = {}", builder.camera.forward());
-        println!("camera.right    = {}", builder.camera.right());
-        println!("camera.up       = {}", builder.camera.up());
-        println!("{} objects", builder.objects.len());
+        println!("camera.position = {}", scene.camera.position());
+        println!("camera.forward  = {}", scene.camera.forward());
+        println!("camera.right    = {}", scene.camera.right());
+        println!("camera.up       = {}", scene.camera.up());
+        println!("{} emitters", scene.emitters.len());
+        println!("{} objects", scene.objects.len());
     }
 
-    Ok(builder.build())
+    Ok(scene)
 }
 
 fn import_material(mat: gltf::Material) -> Material {
