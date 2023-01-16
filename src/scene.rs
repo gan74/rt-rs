@@ -13,9 +13,9 @@ use crate::color::*;
 use crate::surface::*;
 use crate::material::*;
 
-use gltf;
-
 use rand::prelude::*;
+
+use gltf;
 
 
 const MAX_OBJECT_PER_NODE: usize = 2;
@@ -71,7 +71,8 @@ impl Scene {
             return None;
         }
 
-        let emitter = &self.objects[rng.gen_range(0..self.emitters.len())];
+        let index = self.emitters[rng.gen_range(0..self.emitters.len())] as usize;
+        let emitter = &self.objects[index];
         let norm = emitter.area() / self.emitter_area;
         return Some((emitter.surface(), emitter.material().emissive * norm));
     } 
@@ -130,34 +131,6 @@ impl SceneBuilder {
         scene
     }
 }
-
-
-/*impl<T: Surface> SurfaceGroup<T> {
-    pub fn push(&mut self, surf: T) {
-        let total_area = self.area + surf.area();
-
-        self.surfaces.push((total_area, Box::new(surf)));
-        self.area = total_area;
-    }
-
-    pub fn surfaces(&self) -> &Vec<(f32, Box<T>)> {
-        &self.surfaces
-    }
-
-    pub fn sample<R: RngCore>(&self, rng: &mut R) -> Option<&T> {
-        if !self.surfaces.is_empty() {
-            let v = rng.gen::<f32>() * self.area;
-
-            for surf in &self.surfaces {
-                if surf.0 > v {
-                    return Some(&surf.1)
-                }
-            }
-        }
-
-        None
-    }
-}*/
 
 
 impl Hittable for Scene {
