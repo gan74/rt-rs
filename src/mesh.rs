@@ -44,6 +44,7 @@ impl Mesh {
         mesh
     }
 
+
     fn build_surface(&mut self) {
         let mut triangle_areas = self.triangles.iter().map(|index| {
             let p = [
@@ -66,9 +67,8 @@ impl Mesh {
         self.triangle_areas = triangle_areas;
     }
 
-
-    fn hit_triangles(&self, mut ray: Ray, triangles: &[[u32; 3]]) -> Option<HitRecord> {
-        let mut hit: Option<HitRecord> = None;
+    fn hit_triangles<'mesh>(&'mesh self, mut ray: Ray, triangles: &[[u32; 3]]) -> Option<HitRecord<'mesh>> {
+        let mut hit: Option<HitRecord<'mesh>> = None;
 
         for index in triangles {
             let tri = [
@@ -95,7 +95,8 @@ impl Mesh {
                     dist: dist,
                     pos: pos,
                     norm: norm.normalized(),
-                    mat: Some(self.material),
+                    mat: Some(&self.material),
+                    obj: Some(self),
                 });
             }
         }
@@ -111,7 +112,7 @@ impl Surface for Mesh {
         self.area
     }
 
-    fn sample(&self, rng: &mut dyn RngCore) -> SurfaceSample {
+    fn sample_surface(&self, rng: &mut dyn RngCore) -> SurfaceSample {
         let r = rng.gen::<f32>() * self.area;
         let i = self.triangle_areas.partition_point(|a| *a < r);
 
@@ -125,8 +126,17 @@ impl Surface for Mesh {
             self.vertices[index[2] as usize],
         ];
 
-        let bary = [1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0];
 
+        let xi_u = rng.gen::<f32>();
+        let xi_v = rng.gen::<f32>();
+
+        let inv_sqr_u = (1.0 - xi_u).sqrt();
+        let alpha = 1.0 - inv_sqr_u;
+        let beta = xi_v * inv_sqr_u;
+        let gamma = 1.0 - alpha - beta;
+
+        let bary = [alpha, beta, gamma];
+ 
         let pos =
             tri[0].pos * bary[0] +
             tri[1].pos * bary[1] +
@@ -139,7 +149,7 @@ impl Surface for Mesh {
 
         SurfaceSample {
             pos: pos,
-            norm: norm,
+            norm: norm.normalized(),
         }
     }
 }
@@ -156,8 +166,8 @@ impl WithMaterial for Mesh {
     }
 }
 
-impl Hittable for Mesh {
-    type Result = HitRecord;
+impl<'mesh> Hittable for &'mesh Mesh {
+    type Result = HitRecord<'mesh>;
 
     fn hit(&self, ray: Ray) -> Option<Self::Result> {
         self.bvh.trace(ray, |r, tris| self.hit_triangles(r, tris))

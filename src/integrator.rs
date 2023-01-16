@@ -4,8 +4,7 @@ use crate::hit::*;
 use crate::scene::*;
 use crate::camera::*;
 use crate::color::*;
-use crate::material::*;
-use crate::utils::*;
+use crate::surface::*;
 
 use rand::prelude::*;
 
@@ -42,12 +41,11 @@ impl Integrator {
 
                 // Light contrib
                 {
-                    //acc += Self::light_contrib(scene, ray, &hit, rng);
+                    acc += Self::light_contrib(scene, ray, &hit, rng);
                 }
 
                 // Material contrib
-                {
-                    let mat = hit.mat.unwrap_or(Material::default());
+                if let Some(mat) = hit.mat {
                     let scattered = mat.scatter(ray.dir, hit.norm, rng);
 
                     if !scattered.color.is_zero() {
@@ -65,18 +63,22 @@ impl Integrator {
     fn light_contrib<R: RngCore>(scene: &Scene, ray: Ray, hit: &HitRecord, rng: &mut R) -> Color {
         if let Some(mat) = hit.mat {
             if let Some((emitter, radiance)) = scene.sample_emitter_surface(rng) {
+                let sample = emitter.sample_surface(rng);
+                let shadow_ray_dir = (sample.pos - hit.pos).normalized();
 
-                let emitter_point = emitter.sample(rng);
-                let to_emitter = emitter_point.pos - hit.pos;
-                let emitter_dist = to_emitter.length();
+                /*if sample.norm.dot(shadow_ray_dir) < 0.0 {
+                    return Color::from(0.0);
+                }*/
 
-                if emitter_point.norm.dot(to_emitter) < 0.0 {
-                    let color = mat.eval(hit.norm, to_emitter / emitter_dist, -ray.dir);
-                    if !color.is_zero() {
-                        if let Some(shadow) = scene.hit(Ray::new_with_epsilon(hit.pos, to_emitter)) {
-                            if (shadow.dist - emitter_dist).abs() < EPSILON {
-                               return radiance * color;
-                            }
+                let refl = mat.eval(hit.norm, shadow_ray_dir, -ray.dir);
+                if refl.is_zero() {
+                    return Color::from(0.0);
+                }
+
+                if let Some(shadow_hit) = scene.hit(Ray::new_with_epsilon(hit.pos, shadow_ray_dir)) {
+                    if let Some(occluder) = shadow_hit.obj {
+                        if std::ptr::eq(occluder, emitter) {
+                            return refl * radiance;
                         }
                     }
                 }

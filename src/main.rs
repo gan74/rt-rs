@@ -24,7 +24,6 @@ mod integrator;
 mod bvh;
 mod vertex;
 mod surface;
-mod shapes;
 mod utils;
 
 

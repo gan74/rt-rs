@@ -47,13 +47,13 @@ impl<T: Clone> Bvh<T> {
         self.root.aabb
     }
 
-    pub fn trace<H: Hit, F: Fn(Ray, &[T]) -> Option<H>>(&self, ray: Ray, hit_func: F) -> Option<H> {
+    pub fn trace<'hit, F: Fn(Ray, &[T]) -> Option<HitRecord<'hit>>>(&self, ray: Ray, hit_func: F) -> Option<HitRecord<'hit>> {
         Self::trace_node(&self.root, ray, &hit_func)
     }
 
 
 
-    fn trace_node<H: Hit, F: Fn(Ray, &[T]) -> Option<H>>(node: &BvhNode<T>, mut ray: Ray, hit_func: &F) -> Option<H> {
+    fn trace_node<'hit, F: Fn(Ray, &[T]) -> Option<HitRecord<'hit>>>(node: &BvhNode<T>, mut ray: Ray, hit_func: &F) -> Option<HitRecord<'hit>> {
         if node.aabb.hit(ray).is_none() {
             return None;
         }
@@ -68,10 +68,10 @@ impl<T: Clone> Bvh<T> {
                     [&children.1, &children.0]
                 };
 
-                let mut hit_rec: Option<H> = None;
+                let mut hit_rec: Option<HitRecord<'hit>> = None;
                 for child in children.iter() {
                     if let Some(hit) = Bvh::trace_node(child, ray, hit_func) {
-                        ray = ray.with_max(hit.distance());
+                        ray = ray.with_max(hit.dist);
                         hit_rec = Some(hit);
                     }
                 }

@@ -11,6 +11,6 @@ pub struct SurfaceSample {
 pub trait Surface {
     fn area(&self) -> f32;
 
-    fn sample(&self, rng: &mut dyn RngCore) -> SurfaceSample;
+    fn sample_surface(&self, rng: &mut dyn RngCore) -> SurfaceSample;
 }
 

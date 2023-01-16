@@ -21,8 +21,11 @@ use gltf;
 const MAX_OBJECT_PER_NODE: usize = 2;
 
 
+pub type SceneObject = Mesh;
+
+
 pub struct Scene {
-    objects: Vec<Box<dyn SceneObject>>,
+    objects: Vec<SceneObject>,
     bvh: Bvh<u32>,
 
     emitters: Vec<u32>,
@@ -32,32 +35,8 @@ pub struct Scene {
 }
 
 pub struct SceneBuilder {
-    objects: Vec<Box<dyn SceneObject>>,
+    objects: Vec<SceneObject>,
     camera: Camera,
-}
-
-pub trait SceneObject: 
-    Hittable<Result = HitRecord> + 
-    Surface + 
-    WithAabb + 
-    WithMaterial + 
-    Sync {
-
-    fn surface(&self) -> &dyn Surface;
-}
-
-
-
-impl<T> SceneObject for T where T: 
-    Hittable<Result = HitRecord> + 
-    Surface + 
-    WithAabb + 
-    WithMaterial + 
-    Sync {
-
-    fn surface(&self) -> &dyn Surface {
-        self
-    }
 }
 
 
@@ -66,7 +45,7 @@ impl Scene {
         self.camera
     }
 
-    pub fn sample_emitter_surface<R: RngCore>(&self, rng: &mut R) -> Option<(&dyn Surface, Color)> {
+    pub fn sample_emitter_surface<R: RngCore>(&self, rng: &mut R) -> Option<(&SceneObject, Color)> {
         if self.emitters.is_empty() {
             return None;
         }
@@ -74,7 +53,7 @@ impl Scene {
         let index = self.emitters[rng.gen_range(0..self.emitters.len())] as usize;
         let emitter = &self.objects[index];
         let norm = emitter.area() / self.emitter_area;
-        return Some((emitter.surface(), emitter.material().emissive * norm));
+        return Some((emitter, emitter.material().emissive * norm));
     } 
 
 
@@ -111,7 +90,7 @@ impl SceneBuilder {
         }
     }
 
-    pub fn push(&mut self, obj: Box<dyn SceneObject>) {
+    pub fn push(&mut self, obj: SceneObject) {
         self.objects.push(obj);
     } 
 
@@ -133,12 +112,12 @@ impl SceneBuilder {
 }
 
 
-impl Hittable for Scene {
-    type Result = HitRecord;
+impl<'scene> Hittable for &'scene Scene {
+    type Result = HitRecord<'scene>;
 
     fn hit(&self, ray: Ray) -> Option<Self::Result> {
         self.bvh.trace(ray, |mut r, objects| {
-            let mut hit_rec: Option<HitRecord> = None;
+            let mut hit_rec: Option<Self::Result> = None;
             for i in objects {
                 let obj = &self.objects[*i as usize];
                 if let Some(hit) = obj.hit(r) {
@@ -180,7 +159,7 @@ pub fn import_scene<P: AsRef<Path>>(path: P) -> gltf::Result<Scene> {
                             let indices = indices.into_u32().collect::<Vec<_>>();
                             let triangles = indices.as_slice().chunks(3).map(|sl| [sl[0], sl[1], sl[2]]).collect();
                             let material = import_material(primitive.material());
-                            builder.push(Box::new(Mesh::new(vertices, triangles, material)));
+                            builder.push(Mesh::new(vertices, triangles, material));
                         },
 
                         _ => {

@@ -18,9 +18,13 @@ impl Ray {
     }
 
     pub fn new_with_epsilon(orig: Vec3, dir: Vec3) -> Ray {
+        Ray::new_with_offset(orig, dir, EPSILON)
+    }
+
+    pub fn new_with_offset(orig: Vec3, dir: Vec3, offset: f32) -> Ray {
         let ray = Ray::new(orig, dir);
         Ray {
-            orig: ray.orig + ray.dir * EPSILON,
+            orig: ray.orig + ray.dir * offset,
             dir: ray.dir,
             max: f32::MAX,
         }
