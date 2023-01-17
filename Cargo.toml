@@ -9,9 +9,9 @@ resolver = "2"
 opt-level = 3
 
 [dependencies]
-gltf = { version = "1.0", features = ["KHR_materials_transmission"] }
 rand = "*"
 rayon = "*"
 
 show-image = { version = "0.13.1", features = ["save"] }
+gltf = { git = "https://github.com/gan74/gltf", features = ["KHR_materials_transmission", "KHR_materials_emissive_strength"] }
 

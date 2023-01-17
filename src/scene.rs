@@ -203,12 +203,11 @@ fn import_material(mat: gltf::Material) -> Material {
     let pbr = mat.pbr_metallic_roughness();
     //let transmission = mat.transmission().map(|tr| tr.transmission_factor()).unwrap_or(0.0);
 
-println!("{:?}", to_color(&mat.emissive_factor()[0..3]));
     Material {
         roughness: pbr.roughness_factor(),
         metallic: pbr.metallic_factor(),
         color: to_color(&pbr.base_color_factor()[0..3]),
-        emissive: to_color(&mat.emissive_factor()[0..3]),
+        emissive: to_color(&mat.emissive_factor()[0..3]) * mat.emissive_strength().unwrap_or(1.0),
     }
 }
 

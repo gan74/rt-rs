@@ -42,11 +42,11 @@ use crate::image::*;
 
 
 
-const SPP: usize = 64;
+const SPP: usize = 16;
 const MAX_BOUNCES: usize = 4;
 const SCENE_FILE: &str = "assets/cornel.gltf";
 
-
+const EXPOSURE: f32 = 0.25;
 
 fn load() -> Scene {
     let start = Instant::now();
@@ -86,7 +86,7 @@ fn trace(scene: &Scene) -> Image {
 
         assert!(color.r >= 0.0 && color.g >= 0.0 && color.b >= 0.0);
 
-        color / SPP as f32
+        tonemap(color / SPP as f32)
     }).collect::<Vec<_>>());
 
     let duration = Instant::now() - start;
@@ -112,6 +112,13 @@ fn srgb_data(image: &Image) -> Vec<u8> {
     }
 
     pixel_data
+}
+
+fn tonemap(color: Color) -> Color {
+    let reinhard = |x| x / (x + 1.0);
+
+    let color = color * EXPOSURE;
+    Color::new(reinhard(color.r), reinhard(color.g), reinhard(color.b))
 }
 
 
