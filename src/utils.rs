@@ -3,8 +3,10 @@ use crate::vec::*;
 use rand::prelude::*;
 
 
-
+pub const PI: f32 = core::f32::consts::PI;
+pub const INV_PI: f32 = 1.0 / PI;
 pub const EPSILON: f32 = 0.00001;
+
 
 pub fn random_unit_vector<R: RngCore>(rng: &mut R) -> Vec3 {
     loop {

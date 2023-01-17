@@ -103,7 +103,7 @@ impl Mesh {
                     dist: dist,
                     pos: pos,
                     norm: norm.normalized(),
-                    mat: Some(&self.material),
+                    ray: ray,
                     obj: Some(self),
                 });
             }

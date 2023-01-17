@@ -6,8 +6,6 @@ use rand::prelude::*;
 
 use std::default::*;
 
-use core::f32::consts::FRAC_1_PI;
-
 
 #[derive(Debug, Clone, Copy)]
 pub struct Material {
@@ -17,9 +15,9 @@ pub struct Material {
     pub emissive: Color,
 }
 
-pub struct MaterialScatter {
+pub struct MaterialSample {
     pub color: Color,
-    pub reflected: Vec3,
+    pub reflected_dir: Vec3,
 }
 
 
@@ -29,20 +27,19 @@ impl Material {
     }
 
     pub fn pdf(&self, norm: Vec3, in_dir: Vec3, out_dir: Vec3) -> f32 {
-        let cos_out = norm.dot(out_dir);
-        let cos_in = norm.dot(in_dir);
-        if cos_out < 0.0 || cos_in < 0.0 { 
+        let cos_theta = norm.dot(out_dir);
+        if cos_theta <= 0.0 || norm.dot(in_dir) <= 0.0 { 
             return 0.0;
         }
-        FRAC_1_PI * cos_out
+        cos_theta * INV_PI
     }
 
-    pub fn scatter<R: RngCore>(&self, _in_dir: Vec3, norm: Vec3, rng: &mut R) -> MaterialScatter {
+    pub fn sample<R: RngCore>(&self, _in_dir: Vec3, norm: Vec3, rng: &mut R) -> MaterialSample {
         // TODO: importance sampling
-        let refl = random_in_hemisphere(norm, rng);
-        MaterialScatter {
-            color: self.color,
-            reflected: refl,
+        let reflected_dir = random_in_hemisphere(norm, rng);
+        MaterialSample {
+            color: self.color * INV_PI,
+            reflected_dir: reflected_dir,
         }
     }
 

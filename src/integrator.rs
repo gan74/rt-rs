@@ -37,19 +37,20 @@ impl Integrator {
 
         match scene.hit(ray) {
             Some(hit) => {
-                let mut acc = hit.mat.map(|m| m.emissive).unwrap_or(Color::from(0.0));
+                let mut acc = Color::from(0.0);
 
                 // Light contrib
                 {
-                    acc += Self::light_contrib(scene, ray, &hit, rng);
+                    acc += Self::light_contrib(scene, &hit, rng);
                 }
 
                 // Material contrib
-                if let Some(mat) = hit.mat {
-                    let scattered = mat.scatter(ray.dir, hit.norm, rng);
+                if let Some(mat) = hit.material() {
+                    acc += mat.emissive;
 
-                    if !scattered.color.is_zero() {
-                        acc += Self::trace(scene, Ray::new_with_epsilon(hit.pos, scattered.reflected), no_hit, rng, max_rays - 1) * scattered.color;
+                    let sample = mat.sample(ray.dir, hit.norm, rng);
+                    if !sample.color.is_zero() {
+                        acc += sample.color * Self::trace(scene, Ray::new_with_epsilon(hit.pos, sample.reflected_dir), no_hit, rng, max_rays - 1);
                     }
                 }
 
@@ -60,8 +61,8 @@ impl Integrator {
         }
     }
 
-    fn light_contrib<R: RngCore>(scene: &Scene, ray: Ray, hit: &HitRecord, rng: &mut R) -> Color {
-        if let Some(mat) = hit.mat {
+    fn light_contrib<R: RngCore>(scene: &Scene, hit: &HitRecord, rng: &mut R) -> Color {
+        if let Some(mat) = hit.material() {
             if let Some((emitter, radiance)) = scene.sample_emitter_surface(rng) {
                 let sample = emitter.sample_surface(rng);
                 let shadow_ray_dir = (sample.pos - hit.pos).normalized();
@@ -70,7 +71,7 @@ impl Integrator {
                     return Color::from(0.0);
                 }*/
 
-                let refl = mat.eval(hit.norm, shadow_ray_dir, -ray.dir);
+                let refl = mat.eval(hit.norm, shadow_ray_dir, -hit.ray.dir);
                 if refl.is_zero() {
                     return Color::from(0.0);
                 }

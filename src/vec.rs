@@ -49,6 +49,11 @@ impl Vec3 {
         self.clone() / self.length()
     }
 
+    pub fn length_normalized(&self) -> (f32, Vec3) {
+        let len = self.length();
+        (len, self.clone() / len)
+    }
+
     pub fn cross(&self, o: Vec3) -> Vec3 {
         Vec3 {
             x: self.y * o.z - self.z * o.y,

@@ -8,7 +8,7 @@ pub struct HitRecord<'hit> {
     pub dist: f32,
     pub pos: Vec3,
     pub norm: Vec3,
-    pub mat: Option<&'hit Material>,
+    pub ray: Ray,
     pub obj: Option<&'hit SceneObject>,
 }
 
@@ -17,6 +17,14 @@ pub trait Hittable {
     type Result;
 
     fn hit(&self, ray: Ray) -> Option<Self::Result>;
+}
+
+
+
+impl<'hit> HitRecord<'hit> {
+    pub fn material(&self) -> Option<&'hit Material> {
+        self.obj.map(|o| o.material())
+    }
 }
 
 

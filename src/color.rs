@@ -17,6 +17,7 @@ pub struct SRgbColor {
 
 impl Color {
     pub fn new(r: f32, g: f32, b: f32) -> Color {
+        debug_assert!(r >= 0.0 && g >= 0.0 && b >= 0.0);
         Color {
             r: r,
             g: g,
@@ -59,11 +60,7 @@ impl Add for Color {
     type Output = Color;
 
     fn add(self, o: Color) -> Color {
-        Color {
-            r: self.r + o.r,
-            g: self.g + o.g,
-            b: self.b + o.b,
-        }
+        Color::new(self.r + o.r, self.g + o.g, self.b + o.b)
     }
 }
 
@@ -71,11 +68,7 @@ impl Mul for Color {
     type Output = Color;
 
     fn mul(self, o: Color) -> Color {
-        Color {
-            r: self.r * o.r,
-            g: self.g * o.g,
-            b: self.b * o.b,
-        }
+        Color::new(self.r * o.r, self.g * o.g, self.b * o.b)
     }
 }
 
@@ -83,11 +76,7 @@ impl Div for Color {
     type Output = Color;
 
     fn div(self, o: Color) -> Color {
-        Color {
-            r: self.r / o.r,
-            g: self.g / o.g,
-            b: self.b / o.b,
-        }
+        Color::new(self.r / o.r, self.g / o.g, self.b / o.b)
     }
 }
 
